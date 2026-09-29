@@ -49,6 +49,8 @@ On an Apple M4 with 24 GiB RAM, all **72 requests succeeded** across three admis
 
 This is real local Metal inference. The scripted quick-start demo remains a transport and scheduler check. The experiment records server-reported token usage and zero cached prompt tokens; ITL is unavailable because the streams lack token-level logprobs.
 
+The [longer-generation follow-up](experiments/mlx-admission-2026-09-30/README.md) adds **192 successful requests** across a mixed burst and a finite short-request stream, with 64-token generations. Shortest-input improved short-request and overall mean E2E in all four workload/repetition comparisons, while increasing mean long-request waiting. On the short stream, aging reduced long-request mean queue time from **4.78 / 5.42 s to 1.30 / 1.31 s**, at the cost of higher short-request latency. Shortest-input worsened overall p95 in both stream repetitions. The report publishes the frozen protocol, per-class metrics and admission order, making that tradeoff visible.
+
 ## Workload and policies
 
 The default seed is 42 with 24 requests. Every eight requests arrive as one burst, with bursts 120 ms apart. Short/tool/burst prompt bodies use 16–48 repeated words; long contexts use 512–1024. These are **input token estimates**, labeled `word_estimate`, until `/tokenize` replaces them. No tokenizer-independent exact token count is claimed. `workload.json` freezes prompts, arrival times, generation limits and dependencies; reports include its SHA-256 and count/arrival distributions.
@@ -105,6 +107,7 @@ TTFT is a client-observed first-output approximation; ordinary streams do not ex
 - Deterministic policy ordering, aging promotion, bounded concurrency and dependency failure propagation.
 - Deadline and truncated-stream failures, token telemetry gaps, exact metric arithmetic.
 - Real Qwen3-0.6B inference through MLX/Metal on Apple M4: 72/72 successful requests, with [reproduction commands and measurements](experiments/mlx-m4-2026-09-30/README.md).
+- Two longer-generation admission workloads: 192/192 successful requests, with [short/long latency tradeoffs and frozen replay inputs](experiments/mlx-admission-2026-09-30/README.md).
 
 ## References and license
 
