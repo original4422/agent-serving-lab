@@ -41,6 +41,14 @@ For authentication, set `SERVING_LAB_API_KEY` in the process environment, or sel
 
 External runs are labeled `external_backend_unverified`: the tool cannot determine whether an endpoint runs a real model. When sharing a real experiment, record model revision, server version/arguments, hardware, tokenizer, cache/warm-up conditions and competing traffic alongside the output.
 
+## Run a real model on Apple silicon
+
+The [M4/MLX experiment](experiments/mlx-m4-2026-09-30/README.md) includes pinned setup commands, a warm-up helper, the frozen workload and per-request measurements. It uses Qwen3-0.6B 4-bit weights (320 MiB), MLX-LM 0.31.3 and a separate Python environment; the main CLI keeps its HTTPX-only dependency.
+
+On an Apple M4 with 24 GiB RAM, all **72 requests succeeded** across three admission policies and two repetitions. E2E p95 was **2.88 / 2.91 s** for FCFS, **2.67 / 2.18 s** for shortest input and **2.80 / 2.82 s** for aging. These measurements cover a 12-request synthetic workload with a 12-token generation limit. Shortest input finished this workload sooner in both repetitions; the varying difference calls for broader workloads before choosing a default policy.
+
+This is real local Metal inference. The scripted quick-start demo remains a transport and scheduler check. The experiment records server-reported token usage and zero cached prompt tokens; ITL is unavailable because the streams lack token-level logprobs.
+
 ## Workload and policies
 
 The default seed is 42 with 24 requests. Every eight requests arrive as one burst, with bursts 120 ms apart. Short/tool/burst prompt bodies use 16–48 repeated words; long contexts use 512–1024. These are **input token estimates**, labeled `word_estimate`, until `/tokenize` replaces them. No tokenizer-independent exact token count is claimed. `workload.json` freezes prompts, arrival times, generation limits and dependencies; reports include its SHA-256 and count/arrival distributions.
@@ -89,7 +97,7 @@ TTFT is a client-observed first-output approximation; ordinary streams do not ex
 - Local scripted HTTP/SSE integration, chunked transfer and fragmented UTF-8.
 - Deterministic policy ordering, aging promotion, bounded concurrency and dependency failure propagation.
 - Deadline and truncated-stream failures, token telemetry gaps, exact metric arithmetic.
-- No GPU-backed model performance measurement has been completed. The implementation can target an existing compatible endpoint without installing an inference runtime.
+- Real Qwen3-0.6B inference through MLX/Metal on Apple M4: 72/72 successful requests, with [reproduction commands and measurements](experiments/mlx-m4-2026-09-30/README.md).
 
 ## References and license
 

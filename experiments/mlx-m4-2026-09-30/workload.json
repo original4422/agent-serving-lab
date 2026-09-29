@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "seed": 42,
+  "requests": [
+    {
+      "id": "r0",
+      "kind": "short",
+      "arrival_s": 0.0,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 23,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r1",
+      "kind": "long",
+      "arrival_s": 0.0,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 537,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r2",
+      "kind": "tool_followup",
+      "arrival_s": 0.0,
+      "after": "r1",
+      "tool_delay_s": 0.03,
+      "input_tokens": 33,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Look up the item status."
+        },
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "lookup",
+              "type": "function",
+              "function": {
+                "name": "lookup_status",
+                "arguments": "{}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "lookup",
+          "content": "item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        },
+        {
+          "role": "user",
+          "content": "Summarize the result."
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r3",
+      "kind": "burst",
+      "arrival_s": 0.0,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 31,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r4",
+      "kind": "short",
+      "arrival_s": 0.0,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 30,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r5",
+      "kind": "long",
+      "arrival_s": 0.0,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 654,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r6",
+      "kind": "tool_followup",
+      "arrival_s": 0.0,
+      "after": "r5",
+      "tool_delay_s": 0.03,
+      "input_tokens": 22,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Look up the item status."
+        },
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "lookup",
+              "type": "function",
+              "function": {
+                "name": "lookup_status",
+                "arguments": "{}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "lookup",
+          "content": "item item item item item item item item item item item item item item item item item item item item item item "
+        },
+        {
+          "role": "user",
+          "content": "Summarize the result."
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r7",
+      "kind": "burst",
+      "arrival_s": 0.0,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 21,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r8",
+      "kind": "short",
+      "arrival_s": 0.12,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 43,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r9",
+      "kind": "long",
+      "arrival_s": 0.12,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 544,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r10",
+      "kind": "tool_followup",
+      "arrival_s": 0.12,
+      "after": "r9",
+      "tool_delay_s": 0.03,
+      "input_tokens": 17,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Look up the item status."
+        },
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "lookup",
+              "type": "function",
+              "function": {
+                "name": "lookup_status",
+                "arguments": "{}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "lookup",
+          "content": "item item item item item item item item item item item item item item item item item "
+        },
+        {
+          "role": "user",
+          "content": "Summarize the result."
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "r11",
+      "kind": "burst",
+      "arrival_s": 0.12,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 21,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize: item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 12
+    }
+  ]
+}

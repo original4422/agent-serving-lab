@@ -1,0 +1,71 @@
+{
+  "date": "2026-09-30",
+  "hardware": {
+    "device": {
+      "device_name": "Apple M4",
+      "max_recommended_working_set_size": 17179885568,
+      "memory_size": 25769803776,
+      "architecture": "applegpu_g16g",
+      "max_buffer_length": 12884901888,
+      "resource_limit": 499000
+    },
+    "os": "15.7.8",
+    "architecture": "arm64",
+    "python": "3.12.14",
+    "gpu_cores": 10
+  },
+  "model": {
+    "repo": "mlx-community/Qwen3-0.6B-4bit",
+    "revision": "73e3e38d981303bc594367cd910ea6eb48349da8",
+    "license": "Apache-2.0",
+    "files_sha256": {
+      "model.safetensors": "392e8d466d56100ada00eb82031fb854297fc9e389b7d303eba3af114e87bce2",
+      "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+      "tokenizer_config.json": "253153d0738ceb4c668d2eff957714dd2bea0b56de772a9fdccd96cbf517e6a0",
+      "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+      "config.json": "15d3ac26c043ae477273ed5802ee0f0b33bb14f18c9d3dd70910c02d906e3f1f",
+      "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+      "README.md": "43209eb9544b7d4871f54673b35a1c434155fcff0c31eced56571e0489629bf0",
+      "merges.txt": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+      "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+      "model.safetensors.index.json": "7b294141456f6904936db03c00bca50fb5f6198f652fe8483f9cd2a1018accfb"
+    },
+    "weights_bytes": 335450584
+  },
+  "backend": {
+    "mlx": "0.32.3",
+    "mlx_lm": "0.31.3",
+    "transformers": "5.17.0",
+    "command": [
+      "mlx_lm.server",
+      "--model",
+      "results/qwen3-0.6b-4bit",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "18081",
+      "--prompt-cache-size",
+      "0",
+      "--decode-concurrency",
+      "2",
+      "--prompt-concurrency",
+      "2",
+      "--chat-template-args",
+      "{\"enable_thinking\":false}",
+      "--log-level",
+      "WARNING"
+    ],
+    "environment": {
+      "HF_HUB_OFFLINE": "1"
+    }
+  },
+  "client": {
+    "git_commit": "804f9e67b3e03a73e8d4c3b93064028818e880a8",
+    "python": "3.13.2",
+    "httpx": "0.28.1",
+    "command": "uv run agent-serving-lab run --base-url http://127.0.0.1:18081/v1 --model default_model --count 12 --concurrency 2 --repeats 2 --seed 42 --output results/mlx-initial"
+  },
+  "warmup": "12 sequential requests, same seed/workload/max_tokens, before measurements; warmup.json",
+  "traffic": "Other managed browser benchmark finished before MLX; no other managed model benchmark ran concurrently. Normal desktop processes remained active.",
+  "measurement": "client admission and localhost SSE; Metal backend, no GPU utilization or power sampling"
+}
