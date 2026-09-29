@@ -37,7 +37,7 @@ uv run agent-serving-lab run \
 
 For authentication, set `SERVING_LAB_API_KEY` in the process environment, or select a different variable with `--api-key-env`. The client does not use ambient HTTP proxies. Keys, endpoint URLs and generated model text are not written to reports. Workload files include prompts; results are gitignored.
 
-`--timeout` is the total deadline of each admitted HTTP request. A failed stream is not retried; its dependent requests are marked blocked. The CLI exits nonzero when any request fails or is blocked.
+`--timeout` is the total deadline of each admitted HTTP request. A failed stream is not retried; its dependent requests are marked blocked. Optional workload `deadline_s` also budgets queueing (see below). The CLI exits nonzero when any request fails, expires or is blocked.
 
 External runs are labeled `external_backend_unverified`: the tool cannot determine whether an endpoint runs a real model. When sharing a real experiment, record model revision, server version/arguments, hardware, tokenizer, cache/warm-up conditions and competing traffic alongside the output.
 
@@ -79,13 +79,29 @@ uv run agent-serving-lab demo --workload results/latest/workload.json \
   --policy aging --aging 0.15 --starvation 0.5 --output results/replay
 ```
 
-Custom workload JSON uses the same schema as the saved file. Each request has a unique `id`, `kind`, `arrival_s`, `messages`, positive `input_tokens`, `input_tokens_source`, and `max_tokens`; optional `after` and `tool_delay_s` describe a dependency. Cycles and missing parents are rejected.
+### Budget queueing and streaming together
+
+A request may include `"deadline_s": 0.5` for a 500 ms total budget from its **eligible release**. For a dependent request, that clock starts after its parent completes and the tool delay elapses, or at `arrival_s`, whichever is later. Omitting the field keeps the original behavior. Values must be positive and finite.
+
+- A request still queued at its deadline becomes `expired` with `error: deadline_before_admission`. The scheduler wakes at the deadline even when all slots are occupied, records the observed expiration time, and never sends that request to the server. It has no `admitted_s`.
+- An admitted request gets only the remaining budget. Expiration closes the local stream and records `error: deadline_during_stream`, preserving received chunks and usage. This does not guarantee that the server stops inference.
+- `--timeout` remains an independent HTTP budget measured from admission. Whichever limit expires first wins: HTTP timeout is `failed`, workload deadline is `expired`. Neither is retried; their dependents are `blocked`.
+- Cancelling the whole run propagates cancellation and closes its active client streams; it does not fabricate completed request records.
+
+Try the checked-in scripted example. FCFS admits `hold-slot`, expires `queued` before admission, blocks `dependent`, and completes `after-success` within a budget starting at its own release. The command deliberately exits **1** because a request expires:
+
+```sh
+uv run agent-serving-lab demo --workload examples/deadlines.json \
+  --policy fcfs --concurrency 1 --output results/deadlines
+```
+
+Custom workload JSON uses the same schema as the saved file. Each request has a unique `id`, `kind`, `arrival_s`, `messages`, positive `input_tokens`, `input_tokens_source`, and `max_tokens`; optional `after` and `tool_delay_s` describe a dependency; optional `deadline_s` sets its release-relative budget. Cycles and missing parents are rejected.
 
 `--repeats` randomizes policy order using `--seed` and reports each repetition separately. A single noisy run does not establish a winner. Server caches are not reset; prepare comparable server conditions when measuring policy effects.
 
 ## Reading the measurements
 
-Times use a monotonic clock. p50/p95 use nearest-rank quantiles. Metrics include mean and maximum overall and by workload kind; the Markdown report shows each repetition and class separately. `failure_rate` is failed requests divided by all workload requests; blocked dependents remain a separate count.
+Times use a monotonic clock. p50/p95 use nearest-rank quantiles. Metrics include mean and maximum overall and by workload kind; the Markdown report shows each repetition and class separately. `failure_rate` is failed requests divided by all workload requests; expired requests and blocked dependents remain separate counts. `expiration_rate` is expired requests divided by all requests. Queue statistics cover admitted requests only; `expired_queue_s` separately reports release-to-expiration waiting for requests that never entered HTTP. TTFT and E2E distributions cover successful requests only, so read them together with status counts.
 
 | Metric | Definition |
 |---|---|

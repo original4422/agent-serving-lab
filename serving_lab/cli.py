@@ -53,7 +53,7 @@ async def experiment(args, url, evidence):
         (out / "report.json").write_text(json.dumps(report, indent=2) + "\n")
         (out / "report.md").write_text(markdown(report))
         print(markdown(report))
-        return int(any(r["metrics"]["failed"] or r["metrics"]["blocked"] for r in report["runs"]))
+        return int(any(r["metrics"]["failed"] or r["metrics"]["blocked"] or r["metrics"]["expired"] for r in report["runs"]))
     finally:
         await backend.close()
 
