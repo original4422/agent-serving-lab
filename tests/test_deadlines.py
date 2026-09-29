@@ -7,6 +7,9 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import json
 import unittest
+from unittest.mock import patch
+
+from serving_lab import scheduler
 
 from serving_lab.backend import OpenAIBackend
 from serving_lab.cli import experiment
@@ -71,6 +74,78 @@ class DeadlineTests(unittest.IsolatedAsyncioTestCase):
                 return {r["id"]: r for r in records}, received, summarize(records, elapsed, 1)
             finally:
                 await backend.close()
+
+    async def test_deadline_crossed_during_selection_never_enters_backend(self):
+        work = workload(1)
+        work["requests"][0]["deadline_s"] = .005
+        loop = asyncio.get_running_loop()
+        clock = [loop.time()]
+        original_choose = scheduler.choose
+        called = []
+
+        def select(*args):
+            entry = original_choose(*args)
+            clock[0] += .01  # Selection crosses the deadline after the ready scan.
+            return entry
+
+        class Backend:
+            async def stream(self, request, **options):
+                called.append(request["id"])
+                return {"error": None}
+
+        with patch.object(loop, "time", side_effect=lambda: clock[0]), \
+                patch.object(scheduler, "choose", side_effect=select):
+            records, elapsed = await run(work, Backend(), concurrency=1)
+        self.assertEqual(called, [])
+        self.assertEqual(records[0]["error"], "deadline_before_admission")
+        self.assertNotIn("admitted_s", records[0])
+        metrics = summarize(records, elapsed, 1)
+        self.assertEqual(metrics["queue_s"]["n"], 0)
+        self.assertEqual(metrics["expired_queue_s"]["n"], 1)
+
+    async def test_reverse_descendants_block_before_waiting_for_unrelated_stream(self):
+        work = workload(4)
+        r0, r1, r2, r3 = work["requests"]
+        r1["deadline_s"] = .005
+        r2["after"], r3["after"] = "r1", "r2"
+        work["requests"] = [r0, r1, r3, r2]
+        loop = asyncio.get_running_loop()
+        clock = [loop.time()]
+        original_choose, original_wait = scheduler.choose, asyncio.wait
+        release = asyncio.Event()
+        waits, called = [], []
+
+        def select(*args):
+            entry = original_choose(*args)
+            clock[0] += .01  # r1 expires while the slot is assigned to r0.
+            return entry
+
+        async def wait(*args, **kwargs):
+            waits.append(True)
+            if len(waits) == 2:
+                # End the unrelated stream only after the scheduler has had its
+                # queue-expiry wakeup and next opportunity to propagate blocks.
+                clock[0] += .02
+                release.set()
+            return await original_wait(*args, **kwargs)
+
+        class Backend:
+            async def stream(self, request, **options):
+                called.append(request["id"])
+                await release.wait()
+                return {"error": None}
+
+        with patch.object(loop, "time", side_effect=lambda: clock[0]), \
+                patch.object(scheduler, "choose", side_effect=select), \
+                patch.object(asyncio, "wait", side_effect=wait):
+            records, _ = await run(work, Backend(), concurrency=1)
+        by_id = {r["id"]: r for r in records}
+        self.assertEqual(called, ["r0"])
+        self.assertEqual(by_id["r1"]["error"], "deadline_before_admission")
+        for child in ("r2", "r3"):
+            self.assertEqual(by_id[child]["status"], "blocked")
+            self.assertEqual(by_id[child]["end_s"], by_id["r1"]["end_s"])
+            self.assertLess(by_id[child]["end_s"], by_id["r0"]["end_s"])
 
     async def test_queue_expiry_wakes_before_occupied_slot_finishes(self):
         work = workload(3)

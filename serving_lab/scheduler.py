@@ -27,9 +27,23 @@ async def run(workload, backend, policy="fcfs", concurrency=2, aging_s=0.2):
     pending = [{"request": r, "index": i} for i, r in enumerate(workload["requests"])]
     ready, active, finished, records = [], {}, {}, []
     now = lambda: clock() - start
+
+    def expire(entry, at):
+        r = entry["request"]
+        if "deadline_s" not in r or at < entry["released_s"] + r["deadline_s"]:
+            return False
+        record = {"id": r["id"], "kind": r["kind"], "status": "expired",
+                  "released_s": entry["released_s"], "end_s": at,
+                  "deadline_s": r["deadline_s"], "error": "deadline_before_admission",
+                  "chunk_times_s": [], "chunk_token_counts": [], "usage": {}}
+        records.append(record)
+        finished[r["id"]] = record
+        return True
+
     try:
         while pending or ready or active:
             t = now()
+            blocked_any = False
             for entry in pending[:]:
                 r = entry["request"]
                 parent = r.get("after")
@@ -41,6 +55,7 @@ async def run(workload, backend, policy="fcfs", concurrency=2, aging_s=0.2):
                     records.append(record)
                     finished[r["id"]] = record
                     pending.remove(entry)
+                    blocked_any = True
                     continue
                 release = max(r["arrival_s"], finished[parent]["end_s"] + r.get("tool_delay_s", 0)) if parent else r["arrival_s"]
                 entry["released_s"] = release
@@ -49,25 +64,24 @@ async def run(workload, backend, policy="fcfs", concurrency=2, aging_s=0.2):
                     pending.remove(entry)
             expired_any = False
             for entry in ready[:]:
-                r = entry["request"]
-                if "deadline_s" in r and now() >= entry["released_s"] + r["deadline_s"]:
-                    record = {"id": r["id"], "kind": r["kind"], "status": "expired",
-                              "released_s": entry["released_s"], "end_s": now(),
-                              "deadline_s": r["deadline_s"], "error": "deadline_before_admission",
-                              "chunk_times_s": [], "chunk_token_counts": [], "usage": {}}
-                    records.append(record)
-                    finished[r["id"]] = record
+                if expire(entry, now()):
                     ready.remove(entry)
                     expired_any = True
-            if expired_any:
-                continue  # Propagate blocked dependencies without waiting for active HTTP streams.
+            if blocked_any or expired_any:
+                continue  # Propagate all blocked descendants before waiting for active streams.
             while ready and len(active) < concurrency:
                 entry = choose(ready, now(), policy, aging_s)
                 ready.remove(entry)
-                entry["admitted_s"] = now()
+                admitted_s = now()
+                if expire(entry, admitted_s):
+                    expired_any = True
+                    break
+                entry["admitted_s"] = admitted_s
                 r = entry["request"]
                 options = {"deadline_at": start + entry["released_s"] + r["deadline_s"]} if "deadline_s" in r else {}
                 active[asyncio.create_task(backend.stream(r, **options))] = entry
+            if expired_any:
+                continue
             if not active:
                 if pending:
                     releases = [e["released_s"] for e in pending if "released_s" in e]

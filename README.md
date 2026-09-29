@@ -83,9 +83,9 @@ uv run agent-serving-lab demo --workload results/latest/workload.json \
 
 A request may include `"deadline_s": 0.5` for a 500 ms total budget from its **eligible release**. For a dependent request, that clock starts after its parent completes and the tool delay elapses, or at `arrival_s`, whichever is later. Omitting the field keeps the original behavior. Values must be positive and finite.
 
-- A request still queued at its deadline becomes `expired` with `error: deadline_before_admission`. The scheduler wakes at the deadline even when all slots are occupied, records the observed expiration time, and never sends that request to the server. It has no `admitted_s`.
+- A request still queued at its deadline becomes `expired` with `error: deadline_before_admission`. The scheduler wakes at the deadline even when all slots are occupied, records the observed expiration time, and never sends that request to the server. It has no `admitted_s`. Deadlines are checked again immediately before admission, including when selecting a large batch.
 - An admitted request gets only the remaining budget. Expiration closes the local stream and records `error: deadline_during_stream`, preserving received chunks and usage. This does not guarantee that the server stops inference.
-- `--timeout` remains an independent HTTP budget measured from admission. Whichever limit expires first wins: HTTP timeout is `failed`, workload deadline is `expired`. Neither is retried; their dependents are `blocked`.
+- `--timeout` remains an independent HTTP budget measured from admission. Whichever limit expires first wins: HTTP timeout is `failed`, workload deadline is `expired`. Neither is retried; their dependents are `blocked`. Blocking propagates through the full dependency chain before waiting for unrelated streams, regardless of request order.
 - Cancelling the whole run propagates cancellation and closes its active client streams; it does not fabricate completed request records.
 
 Try the checked-in scripted example. FCFS admits `hold-slot`, expires `queued` before admission, blocks `dependent`, and completes `after-success` within a budget starting at its own release. The command deliberately exits **1** because a request expires:
