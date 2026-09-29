@@ -9,7 +9,7 @@ from serving_lab.workload import generate, validate
 
 
 async def warmup(args):
-    workload = generate(args.seed, args.count)
+    workload = json.loads(Path(args.workload).read_text()) if args.workload else generate(args.seed, args.count)
     validate(workload)
     backend = OpenAIBackend(args.base_url, args.model)
     records = []
@@ -34,5 +34,6 @@ if __name__ == "__main__":
     parser.add_argument("--model", required=True)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--count", type=int, default=12)
+    parser.add_argument("--workload", help="Warm exactly the requests in a frozen workload JSON")
     parser.add_argument("--output", default="results/warmup.json")
     raise SystemExit(asyncio.run(warmup(parser.parse_args())))

@@ -2,6 +2,30 @@
 import random
 import math
 
+PROFILES = ("agent-mix", "mixed-burst", "short-stream")
+
+
+def admission_profile(name, seed=42, count=16):
+    """Independent, capped generations for input-order/fairness experiments."""
+    if name not in PROFILES[1:] or count < 8:
+        raise ValueError("admission profiles require a known name and at least 8 requests")
+    rng = random.Random(seed)
+    requests = []
+    long_indices = set(range(0, count, 4)) if name == "mixed-burst" else {2, 3}
+    for i in range(count):
+        kind = "long" if i in long_indices else "short"
+        units = rng.randint(768, 1280) if kind == "long" else rng.randint(32, 64)
+        arrival = 0 if name == "mixed-burst" or i < 2 else .05 if i < 4 else (i - 3) * .12
+        requests.append({
+            "id": f"r{i}", "kind": kind, "arrival_s": round(arrival, 6),
+            "input_tokens": units, "input_tokens_source": "word_estimate",
+            "messages": [{"role": "user", "content":
+                "Write a detailed 20-step numbered checklist for reviewing this inventory. "
+                "Explain each step. Inventory: " + "item " * units}],
+            "max_tokens": 64,
+        })
+    return {"version": 1, "seed": seed, "profile": name, "requests": requests}
+
 
 def generate(seed=42, count=24):
     rng = random.Random(seed)

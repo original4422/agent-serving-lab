@@ -1,13 +1,32 @@
 import asyncio
 import unittest
 from serving_lab.backend import OpenAIBackend
-from serving_lab.metrics import summarize
+from serving_lab.metrics import markdown, summarize
 from serving_lab.mock_server import serve
 from serving_lab.scheduler import choose, run
-from serving_lab.workload import generate, validate
+from serving_lab.workload import admission_profile, generate, validate
 
 
 class SchedulingTests(unittest.TestCase):
+    def test_admission_profiles_freeze_arrivals_and_generation_limits(self):
+        for name in ("mixed-burst", "short-stream"):
+            work = admission_profile(name)
+            validate(work)
+            self.assertEqual(work, admission_profile(name))
+            self.assertNotEqual(work, admission_profile(name, seed=7))
+            self.assertEqual(len(work["requests"]), 16)
+            self.assertEqual({r["max_tokens"] for r in work["requests"]}, {64})
+            self.assertEqual({r["input_tokens_source"] for r in work["requests"]}, {"word_estimate"})
+        burst = admission_profile("mixed-burst")["requests"]
+        self.assertEqual(sum(r["kind"] == "long" for r in burst), 4)
+        self.assertEqual({r["arrival_s"] for r in burst}, {0})
+        stream = admission_profile("short-stream")["requests"]
+        self.assertEqual([r["kind"] for r in stream[:4]], ["short", "short", "long", "long"])
+        self.assertEqual([r["arrival_s"] for r in stream[:5]], [0, 0, .05, .05, .12])
+        self.assertEqual(stream[-1]["arrival_s"], 1.44)
+        with self.assertRaises(ValueError):
+            admission_profile("short-stream", count=4)
+
     def test_seed_and_validation(self):
         self.assertEqual(generate(), generate())
         self.assertNotEqual(generate(1), generate(2))
@@ -35,6 +54,8 @@ class SchedulingTests(unittest.TestCase):
         self.assertEqual(m["queue_s"]["p95"], 1)
         self.assertEqual(m["ttft_s"]["p95"], 1.5)
         self.assertEqual(m["e2e_s"]["p95"], 4)
+        self.assertEqual(m["e2e_s"]["mean"], 4)
+        self.assertEqual(m["failure_rate"], 0)
         self.assertEqual(m["itl_s"]["p95"], 1)
         self.assertEqual(m["output_tokens_per_s"], .5)
         self.assertEqual(m["queue_threshold_exceeded"], 1)
@@ -44,6 +65,11 @@ class SchedulingTests(unittest.TestCase):
         self.assertIsNone(m["output_tokens_per_s"])
         self.assertEqual(m["itl_s"]["n"], 0)
         self.assertEqual(m["inter_chunk_s"]["n"], 2)
+        report = markdown({"evidence": "test", "runs": [{"policy": "fcfs", "repeat": 1,
+                            "metrics": m, "by_kind": {"long": m}}]})
+        self.assertIn("| 2 | fcfs | long | 1 / 0 / 0 |", report)
+        failed = {**r, "status": "failed"}
+        self.assertEqual(summarize([r, failed], 6, 1)["failure_rate"], .5)
 
 
 class IntegrationTests(unittest.IsolatedAsyncioTestCase):

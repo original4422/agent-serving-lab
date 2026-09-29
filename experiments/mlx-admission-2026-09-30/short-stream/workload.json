@@ -1,0 +1,231 @@
+{
+  "version": 1,
+  "seed": 42,
+  "profile": "short-stream",
+  "requests": [
+    {
+      "id": "r0",
+      "kind": "short",
+      "arrival_s": 0,
+      "input_tokens": 39,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r1",
+      "kind": "short",
+      "arrival_s": 0,
+      "input_tokens": 33,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r2",
+      "kind": "long",
+      "arrival_s": 0.05,
+      "input_tokens": 1049,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r3",
+      "kind": "long",
+      "arrival_s": 0.05,
+      "input_tokens": 1018,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r4",
+      "kind": "short",
+      "arrival_s": 0.12,
+      "input_tokens": 46,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r5",
+      "kind": "short",
+      "arrival_s": 0.24,
+      "input_tokens": 40,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r6",
+      "kind": "short",
+      "arrival_s": 0.36,
+      "input_tokens": 38,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r7",
+      "kind": "short",
+      "arrival_s": 0.48,
+      "input_tokens": 37,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r8",
+      "kind": "short",
+      "arrival_s": 0.6,
+      "input_tokens": 59,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r9",
+      "kind": "short",
+      "arrival_s": 0.72,
+      "input_tokens": 34,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r10",
+      "kind": "short",
+      "arrival_s": 0.84,
+      "input_tokens": 33,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r11",
+      "kind": "short",
+      "arrival_s": 0.96,
+      "input_tokens": 37,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r12",
+      "kind": "short",
+      "arrival_s": 1.08,
+      "input_tokens": 45,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r13",
+      "kind": "short",
+      "arrival_s": 1.2,
+      "input_tokens": 46,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r14",
+      "kind": "short",
+      "arrival_s": 1.32,
+      "input_tokens": 64,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    },
+    {
+      "id": "r15",
+      "kind": "short",
+      "arrival_s": 1.44,
+      "input_tokens": 33,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a detailed 20-step numbered checklist for reviewing this inventory. Explain each step. Inventory: item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item item "
+        }
+      ],
+      "max_tokens": 64
+    }
+  ]
+}

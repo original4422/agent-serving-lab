@@ -10,11 +10,16 @@ from .backend import OpenAIBackend
 from .metrics import markdown, summarize, distribution
 from .mock_server import serve
 from .scheduler import POLICIES, run
-from .workload import generate, tokenize, validate
+from .workload import PROFILES, admission_profile, generate, tokenize, validate
 
 
 async def experiment(args, url, evidence):
-    workload = json.loads(Path(args.workload).read_text()) if args.workload else generate(args.seed, args.count)
+    if args.workload:
+        workload = json.loads(Path(args.workload).read_text())
+    elif args.profile == "agent-mix":
+        workload = generate(args.seed, args.count)
+    else:
+        workload = admission_profile(args.profile, args.seed, args.count)
     validate(workload)
     backend = OpenAIBackend(url, args.model, os.environ.get(args.api_key_env), args.timeout, args.logprobs)
     try:
@@ -69,6 +74,7 @@ def main():
             p.add_argument("--base-url", required=True, help="OpenAI-compatible base URL ending /v1")
         p.add_argument("--model", default="scripted-demo" if command == "demo" else None, required=command == "run")
         p.add_argument("--workload", help="Saved workload JSON; otherwise generate a seeded mixture")
+        p.add_argument("--profile", choices=PROFILES, default="agent-mix", help="Generated workload shape; ignored with --workload")
         p.add_argument("--seed", type=int, default=42)
         p.add_argument("--count", type=int, default=24)
         p.add_argument("--concurrency", type=int, default=2)

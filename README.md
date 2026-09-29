@@ -63,6 +63,13 @@ Each tool follow-up waits for its parent to finish plus a 30 ms tool delay. It r
 
 All policies are non-preemptive with the same `--concurrency` cap. They never use actual future output lengths. Aging stops new short requests from overtaking an already overdue request; occupied slots still have to complete or time out. A finite run's long wait is reported as a threshold violation, not proof of infinite starvation.
 
+Two additional generated profiles expose waiting tradeoffs: `mixed-burst` puts a long input at every fourth position in one arrival burst; `short-stream` puts two long inputs behind two initial short requests, then releases a finite stream of short inputs every 120 ms. Both use a 64-token output cap and require at least eight requests. Their input sizes remain word estimates.
+
+```sh
+uv run agent-serving-lab demo --profile short-stream --count 16 \
+  --concurrency 2 --aging 1 --repeats 2
+```
+
 Replay a saved workload or select one policy:
 
 ```sh
@@ -76,7 +83,7 @@ Custom workload JSON uses the same schema as the saved file. Each request has a 
 
 ## Reading the measurements
 
-Times use a monotonic clock. p50/p95 use nearest-rank quantiles. Metrics are available overall and by workload kind.
+Times use a monotonic clock. p50/p95 use nearest-rank quantiles. Metrics include mean and maximum overall and by workload kind; the Markdown report shows each repetition and class separately. `failure_rate` is failed requests divided by all workload requests; blocked dependents remain a separate count.
 
 | Metric | Definition |
 |---|---|

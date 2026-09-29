@@ -5,9 +5,10 @@ import math
 def distribution(values):
     values = sorted(values)
     if not values:
-        return {"n": 0, "p50": None, "p95": None, "max": None}
+        return {"n": 0, "mean": None, "p50": None, "p95": None, "max": None}
     return {"n": len(values), "p50": values[math.ceil(0.5 * len(values)) - 1],
-            "p95": values[math.ceil(0.95 * len(values)) - 1], "max": values[-1]}
+            "p95": values[math.ceil(0.95 * len(values)) - 1], "max": values[-1],
+            "mean": sum(values) / len(values)}
 
 
 def summarize(records, elapsed, starvation_s):
@@ -18,6 +19,7 @@ def summarize(records, elapsed, starvation_s):
         "requests": len(records), "succeeded": len(ok),
         "failed": sum(r["status"] == "failed" for r in records),
         "blocked": sum(r["status"] == "blocked" for r in records),
+        "failure_rate": sum(r["status"] == "failed" for r in records) / len(records) if records else None,
         "elapsed_s": elapsed, "success_requests_per_s": len(ok) / elapsed,
         "queue_s": distribution(waits),
         "e2e_s": distribution([r["end_s"] - r["released_s"] for r in ok]),
@@ -38,12 +40,20 @@ def summarize(records, elapsed, starvation_s):
 def markdown(report):
     lines = ["# Agent Serving Lab", "", f"Evidence: **{report['evidence']}**", "",
              "Client admission only; no server scheduling or engine changes.", "",
-             "| Policy | OK / failed / blocked | Queue p95 (s) | TTFT p95 (s) | E2E p95 (s) | requests/s |",
-             "|---|---:|---:|---:|---:|---:|"]
+             "| Repeat | Policy | OK / failed / blocked | Queue p95 (s) | TTFT p95 (s) | E2E p95 (s) | requests/s |",
+             "|---:|---|---:|---:|---:|---:|---:|"]
     fmt = lambda x: "n/a" if x is None else f"{x:.4f}"
     for run in report["runs"]:
         m = run["metrics"]
-        lines.append(f"| {run['policy']} | {m['succeeded']} / {m['failed']} / {m['blocked']} | {fmt(m['queue_s']['p95'])} | {fmt(m['ttft_s']['p95'])} | {fmt(m['e2e_s']['p95'])} | {fmt(m['success_requests_per_s'])} |")
+        lines.append(f"| {run['repeat'] + 1} | {run['policy']} | {m['succeeded']} / {m['failed']} / {m['blocked']} | {fmt(m['queue_s']['p95'])} | {fmt(m['ttft_s']['p95'])} | {fmt(m['e2e_s']['p95'])} | {fmt(m['success_requests_per_s'])} |")
+    lines.extend(["", "## Per-kind waiting and completion", "",
+                  "| Repeat | Policy | Kind | OK / failed / blocked | Queue mean / p95 / max (s) | E2E mean / p95 / max (s) |",
+                  "|---:|---|---|---:|---:|---:|"])
+    for run in report["runs"]:
+        for kind, m in run["by_kind"].items():
+            queue = " / ".join(fmt(m["queue_s"][k]) for k in ("mean", "p95", "max"))
+            e2e = " / ".join(fmt(m["e2e_s"][k]) for k in ("mean", "p95", "max"))
+            lines.append(f"| {run['repeat'] + 1} | {run['policy']} | {kind} | {m['succeeded']} / {m['failed']} / {m['blocked']} | {queue} | {e2e} |")
     lines.extend(["", "Full per-request timing, token coverage, chunk intervals and starvation-threshold counts are in JSON.",
                   "Policies share the same workload; dependency release times depend on parent completion.", ""])
     return "\n".join(lines)
