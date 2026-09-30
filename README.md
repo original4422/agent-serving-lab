@@ -62,8 +62,24 @@ Each tool follow-up waits for its parent to finish plus a 30 ms tool delay. It r
 | `fcfs` | Earliest release, then workload order |
 | `shortest-input` | Smallest known input token count/estimate, then FIFO |
 | `aging` | Requests waiting at least `--aging` seconds go first in FIFO order; remaining requests use shortest input |
+| `earliest-deadline` (opt-in) | Earliest effective task/request deadline among ready requests, then release time and workload order; requests without deadlines go last |
+
+`--policy all` runs the original three-policy baseline: FCFS, shortest-input and aging. Its seeded order and number of runs are unchanged. Select `--policy earliest-deadline` explicitly to run the deadline strategy alone. With no declared deadlines it follows FCFS.
 
 All policies are non-preemptive with the same `--concurrency` cap. They never use actual future output lengths. Aging stops new short requests from overtaking an already overdue request; occupied slots still have to complete or time out. A finite run's long wait is reported as a threshold violation, not proof of infinite starvation.
+
+Deadline admission uses the same effective budget as expiration and streaming: the earlier of the task's fixed deadline and the request's release-relative deadline. Equal task/request deadlines retain task attribution. Only eligible requests compete; future arrivals, unfinished parents and tool waits stay outside the ready queue. A newly urgent request does not preempt an active stream. Every task stage competes separately, without reserving its next slot or predicting future service time.
+
+Compare the baseline and opt-in policy over one saved workload by selecting separate output directories:
+
+```sh
+uv run agent-serving-lab demo --workload examples/task-deadlines.json \
+  --policy all --concurrency 2 --output results/task-baseline
+uv run agent-serving-lab demo --workload examples/task-deadlines.json \
+  --policy earliest-deadline --concurrency 2 --output results/task-earliest
+```
+
+That functional example includes an intentional task expiry, so each command exits 1 after saving its report. For a model endpoint, the same policy option is available with `run`.
 
 Two additional generated profiles expose waiting tradeoffs: `mixed-burst` puts a long input at every fourth position in one arrival burst; `short-stream` puts two long inputs behind two initial short requests, then releases a finite stream of short inputs every 120 ms. Both use a 64-token output cap and require at least eight requests. Their input sizes remain word estimates.
 
@@ -123,6 +139,29 @@ uv run agent-serving-lab demo --workload examples/task-deadlines.json \
 ```
 
 It finishes the two-step inventory task and an independent request, then expires the shipment task during its two-second tool wait. The expected report has **4 successful requests, 1 expired request and 1 blocked request**, but **1 timely task and 1 expired task**. The command exits **1**. This is a scripted functional example; tool waits and subsequent request messages are fixed workload inputs.
+
+### A fixed deadline-admission tradeoff
+
+[Deterministic tests](tests/test_deadline_admission.py) compare two two-stage tasks, A and B, arriving at time zero with concurrency 1 and aging threshold 0.2. A has input estimate 1 per stage; B has 10. Tool delays are zero. A fake backend advances a controlled clock; service durations live only in that backend, outside the admission policy's inputs. These are simulated examples, not model measurements.
+
+In the first case, A's budget is 4 seconds and B's is 1; each stage takes a simulated 0.375 seconds. In the second case, A's budget is 0.625 seconds with 0.125-second stages; B's is 0.375 seconds but its first stage requires 0.5 seconds. B cannot finish within that second budget even when admitted first.
+
+| Case | Policy | Timely tasks / total | A root queue (simulated s) | A outcome (simulated s) |
+|---|---|---:|---:|---|
+| Urgent B can finish | fcfs | 1 / 2 | 0 | completed at 1.125 |
+| Urgent B can finish | shortest-input | 1 / 2 | 0 | completed at 0.75 |
+| Urgent B can finish | aging | 1 / 2 | 0 | completed at 1.125 |
+| Urgent B can finish | earliest-deadline | 2 / 2 | 0.75 | completed at 1.5 |
+| Urgent B cannot finish | fcfs | 1 / 2 | 0 | completed at 0.5 |
+| Urgent B cannot finish | shortest-input | 1 / 2 | 0 | completed at 0.25 |
+| Urgent B cannot finish | aging | 1 / 2 | 0 | completed at 0.25 |
+| Urgent B cannot finish | earliest-deadline | 0 / 2 | 0.375 | expired at 0.625 |
+
+Deadline ordering saves B in the first case while delaying A. In the second, spending the earliest budget on B also makes A miss its deadline. The option lets users inspect that tradeoff using task outcomes and request queueing together. Reproduce the fixed cases without a model:
+
+```sh
+uv run python -m unittest discover -s tests -p test_deadline_admission.py -v
+```
 
 ## Saved progress and interrupted experiments
 
