@@ -1,4 +1,7 @@
 """Metrics preserve missing token telemetry instead of counting SSE chunks as tokens."""
+from collections import Counter
+import html
+import json
 import math
 
 
@@ -17,6 +20,8 @@ def summarize(records, elapsed, starvation_s):
     waits = [r["admitted_s"] - r["released_s"] for r in admitted]
     metrics = {
         "requests": len(records), "succeeded": len(ok),
+        "finish_reason_counts": dict(Counter(r["finish_reason"] for r in ok if r.get("finish_reason") is not None)),
+        "finish_reason_missing": sum(r.get("finish_reason") is None for r in ok),
         "failed": sum(r["status"] == "failed" for r in records),
         "expired": sum(r["status"] == "expired" for r in records),
         "expiration_rate": sum(r["status"] == "expired" for r in records) / len(records) if records else None,
@@ -68,6 +73,15 @@ def markdown(report):
             queue = " / ".join(fmt(m["queue_s"][k]) for k in ("mean", "p95", "max"))
             e2e = " / ".join(fmt(m["e2e_s"][k]) for k in ("mean", "p95", "max"))
             lines.append(f"| {run['repeat'] + 1} | {run['policy']} | {kind} | {m['succeeded']} / {m['failed']} / {m['blocked']} | {m.get('expired', 0)} | {queue} | {e2e} |")
+    lines.extend(["", "## Successful-stream finish reasons", "",
+                  "| Repeat | Policy | Reported reasons | Missing |",
+                  "|---:|---|---|---:|"])
+    for run in report["runs"]:
+        m = run["metrics"]
+        counts = html.escape(json.dumps(m.get("finish_reason_counts", {}), sort_keys=True, ensure_ascii=False)).replace("|", "&#124;")
+        lines.append(f"| {run['repeat'] + 1} | {run['policy']} | {counts} | {m.get('finish_reason_missing', m['succeeded'])} |")
+    lines.extend(["", "Reasons describe server-reported endings of successful streams; length and tool_calls remain transport successes.",
+                  "Failed or expired streams may retain a partial observation in JSON and are excluded from these counts."])
     if any("tasks" in run for run in report["runs"]):
         lines.extend(["", "## Whole-task budgets", "",
                       "| Repeat | Policy | Tasks | Timely / failed / expired | Timely E2E mean / p95 (s) |",

@@ -182,6 +182,10 @@ The default creates a new output directory on each invocation. Use `--output res
 
 ## Reading the measurements
 
+Each admitted stream records `finish_reason` from the first choice: the last non-null value wins, and later missing/null fields or usage-only chunks leave it unchanged. Missing telemetry stays `null`; unrecognized reason strings are retained. Successful requests contribute to `finish_reason_counts` and `finish_reason_missing` overall and by workload kind, with per-round counts in Markdown. A failed or expired stream can retain an observed reason but is excluded from those successful-stream counts. Records from older reports without the field count as missing when summarized; historical reports are not rewritten.
+
+`ok` means the transport completed successfully. For example, server-reported `length` identifies a generation-limit ending and `tool_calls` identifies a tool-call ending; both remain `ok`, with unchanged task status, exit code and throughput accounting. Finish reasons do not establish answer quality or business-task success. Token counts alone do not determine the reason, including in the existing capped MLX experiments.
+
 Times use a monotonic clock. p50/p95 use nearest-rank quantiles. Metrics include mean and maximum overall and by workload kind; the Markdown report shows each repetition and class separately. `failure_rate` is failed requests divided by all workload requests; expired requests and blocked dependents remain separate counts. `expiration_rate` is expired requests divided by all requests. Queue statistics cover admitted requests only; `expired_queue_s` separately reports release-to-expiration waiting for requests that never entered HTTP. TTFT and E2E distributions cover successful requests only, so read them together with status counts.
 
 | Metric | Definition |
