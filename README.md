@@ -37,6 +37,8 @@ uv run agent-serving-lab run \
 
 For authentication, set `SERVING_LAB_API_KEY` in the process environment, or select a different variable with `--api-key-env`. The client does not use ambient HTTP proxies. Keys, endpoint URLs and generated model text are not written to reports. Workload files include prompts; results are gitignored.
 
+`--concurrency` caps admitted HTTP operations. The CLI sets its HTTP connection capacity to the same value, so admission above 100 is no longer capped by a second transport queue. The existing limit of 20 idle keep-alive connections remains; request/task deadlines and HTTP timeout keep their meanings. Python callers constructing `OpenAIBackend` directly can pass `max_connections=concurrency`; omitting it retains the previous 100-connection constructor default.
+
 `--timeout` is the total deadline of each admitted HTTP request. A failed stream is not retried; its dependent requests are marked blocked. Optional workload `deadline_s` also budgets queueing (see below). The CLI exits nonzero when any request fails, expires or is blocked.
 
 External runs are labeled `external_backend_unverified`: the tool cannot determine whether an endpoint runs a real model. When sharing a real experiment, record model revision, server version/arguments, hardware, tokenizer, cache/warm-up conditions and competing traffic alongside the output.
@@ -199,10 +201,13 @@ TTFT is a client-observed first-output approximation; ordinary streams do not ex
 ## Verified status
 
 - Local scripted HTTP/SSE integration, chunked transfer and fragmented UTF-8.
+- [Connection-capacity regression](tests/test_connection_capacity.py): all 128 admitted requests reach a held localhost server before any stream is released; cancellation at concurrency 2 frees the client streams, a follow-up succeeds, and fully consumed tokenization responses reuse a keep-alive connection.
 - Deterministic policy ordering, aging promotion, bounded concurrency and dependency failure propagation.
 - Deadline and truncated-stream failures, token telemetry gaps, exact metric arithmetic.
 - Real Qwen3-0.6B inference through MLX/Metal on Apple M4: 72/72 successful requests, with [reproduction commands and measurements](experiments/mlx-m4-2026-09-30/README.md).
 - Two longer-generation admission workloads: 192/192 successful requests, with [short/long latency tradeoffs and frozen replay inputs](experiments/mlx-admission-2026-09-30/README.md).
+
+A controlled localhost probe originally found 128 admitted requests but only 100 server arrivals while those streams were held open. The remaining 28 exhausted their request budgets without reaching the server; the longer pool timeout did not fire. The connection-capacity regression now checks exact arrivals before releasing streams. These counts verify transport behavior, not model throughput; closing a client stream still does not prove server inference has stopped.
 
 ## References and license
 

@@ -54,7 +54,8 @@ async def experiment(args, url, evidence):
     stage = "backend_setup"
     try:
         try:
-            backend = OpenAIBackend(url, args.model, os.environ.get(args.api_key_env), args.timeout, args.logprobs)
+            backend = OpenAIBackend(url, args.model, os.environ.get(args.api_key_env), args.timeout, args.logprobs,
+                                    max_connections=args.concurrency)
             if args.tokenize:
                 stage = "tokenize"
                 await tokenize(workload, backend)

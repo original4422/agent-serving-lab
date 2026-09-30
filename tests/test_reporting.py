@@ -142,7 +142,7 @@ from serving_lab.cli import experiment
 from tests.test_reporting import arguments, completed
 calls = 0
 class Backend:
-    def __init__(self, *args): pass
+    def __init__(self, *args, **kwargs): pass
     async def close(self): pass
 async def run(*args):
     global calls

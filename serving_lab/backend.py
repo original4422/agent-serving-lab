@@ -6,11 +6,12 @@ import httpx
 
 
 class OpenAIBackend:
-    def __init__(self, base_url, model, api_key=None, timeout=60, logprobs=False):
+    def __init__(self, base_url, model, api_key=None, timeout=60, logprobs=False, *, max_connections=100):
         self.base_url = base_url.rstrip("/")
         self.model, self.timeout, self.logprobs = model, timeout, logprobs
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-        self.client = httpx.AsyncClient(headers=headers, timeout=timeout, trust_env=False)
+        limits = httpx.Limits(max_connections=max_connections, max_keepalive_connections=20)
+        self.client = httpx.AsyncClient(headers=headers, timeout=timeout, trust_env=False, limits=limits)
 
     async def close(self):
         await self.client.aclose()
