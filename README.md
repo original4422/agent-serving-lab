@@ -15,7 +15,7 @@ uv sync --locked
 uv run agent-serving-lab demo --logprobs --repeats 2
 ```
 
-This starts a local HTTP/SSE server, runs all three policies, and writes `results/latest/{workload.json,report.json,report.md}`. **The demo is scripted, not an LLM benchmark.** Its timings verify the client, scheduler and reports; they are not evidence of model speed or policy improvements.
+This starts a local HTTP/SSE server, runs all three policies, and creates a unique `results/run-<UTC timestamp>-<suffix>/` directory containing `workload.json`, `report.json` and `report.md`. The CLI prints its absolute path before running requests. **The demo is scripted, not an LLM benchmark.** Its timings verify the client, scheduler and reports; they are not evidence of model speed or policy improvements.
 
 Run tests:
 
@@ -75,7 +75,7 @@ uv run agent-serving-lab demo --profile short-stream --count 16 \
 Replay a saved workload or select one policy:
 
 ```sh
-uv run agent-serving-lab demo --workload results/latest/workload.json \
+uv run agent-serving-lab demo --workload "results/run-<UTC timestamp>-<suffix>/workload.json" \
   --policy aging --aging 0.15 --starvation 0.5 --output results/replay
 ```
 
@@ -98,6 +98,21 @@ uv run agent-serving-lab demo --workload examples/deadlines.json \
 Custom workload JSON uses the same schema as the saved file. Each request has a unique `id`, `kind`, `arrival_s`, `messages`, positive `input_tokens`, `input_tokens_source`, and `max_tokens`; optional `after` and `tool_delay_s` describe a dependency; optional `deadline_s` sets its release-relative budget. Cycles and missing parents are rejected.
 
 `--repeats` randomizes policy order using `--seed` and reports each repetition separately. A single noisy run does not establish a winner. Server caches are not reset; prepare comparable server conditions when measuring policy effects.
+
+## Saved progress and interrupted experiments
+
+The CLI saves the frozen workload and planned policy/repetition order before measurement, then saves each completed round before starting the next. Saving happens outside the round's measured duration. `report.json` is the authoritative snapshot; `report.md` is generated from it and can lag if writing is interrupted.
+
+Each report includes `batch_status`, `planned_runs`, `completed_runs` and `run_plan`:
+
+- `running`: the batch started but has no recorded terminal state. After a forced process termination, read the completed rounds from this snapshot.
+- `interrupted`: cancellation reached the CLI; completed rounds remain saved.
+- `error`: an unexpected exception stopped the batch. `error_type` and `error_stage` identify the failure without storing arbitrary exception messages.
+- `completed`: every planned round finished. Request-level failures, expirations and blocked dependents keep their existing counts and nonzero exit status.
+
+Incomplete rounds are not added to results. JSON snapshots use a temporary file and atomic replacement; if saving fails, the last successfully replaced JSON remains authoritative and may still say `running`. A terminal status cannot be saved when the output storage is unavailable. Each completed round retains its own timing, requests and metrics; incomplete batches do not imply a completed policy comparison.
+
+The default creates a new output directory on each invocation. Use `--output results/my-run` to choose one. If that directory already contains any of `workload.json`, `report.json` or `report.md`, the command stops before creating a backend or making requests. Pick a new path to keep both experiments. Empty directories and directories containing unrelated files are accepted; unrelated files are retained. There is no automatic resume or retry.
 
 ## Reading the measurements
 

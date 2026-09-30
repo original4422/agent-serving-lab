@@ -46,6 +46,8 @@ def markdown(report):
              "Client admission only; no server scheduling or engine changes.", "",
              "| Repeat | Policy | OK / failed / blocked | Expired | Queue p95 (s) | TTFT p95 (s) | E2E p95 (s) | requests/s |",
              "|---:|---|---:|---:|---:|---:|---:|---:|"]
+    if "batch_status" in report:
+        lines[2:2] = [f"Batch: **{report['batch_status']}** — {report['completed_runs']} / {report['planned_runs']} rounds completed.", ""]
     fmt = lambda x: "n/a" if x is None else f"{x:.4f}"
     for run in report["runs"]:
         m = run["metrics"]

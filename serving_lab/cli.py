@@ -9,6 +9,7 @@ import random
 from .backend import OpenAIBackend
 from .metrics import markdown, summarize, distribution
 from .mock_server import serve
+from .reporting import Output
 from .scheduler import POLICIES, run
 from .workload import PROFILES, admission_profile, generate, tokenize, validate
 
@@ -21,41 +22,76 @@ async def experiment(args, url, evidence):
     else:
         workload = admission_profile(args.profile, args.seed, args.count)
     validate(workload)
-    backend = OpenAIBackend(url, args.model, os.environ.get(args.api_key_env), args.timeout, args.logprobs)
+    output = Output(args.output)
+    print(f"Results: {output.path.resolve()}", flush=True)
+    rng = random.Random(args.seed)
+    plan = []
+    for repeat in range(args.repeats):
+        policies = list(POLICIES) if args.policy == "all" else [args.policy]
+        rng.shuffle(policies)
+        plan.extend({"policy": policy, "repeat": repeat} for policy in policies)
+    report = {"schema_version": 1, "evidence": evidence, "model": args.model,
+              "batch_status": "running", "planned_runs": len(plan), "run_plan": plan,
+              "completed_runs": 0, "runs": [],
+              "config": {"concurrency": args.concurrency, "aging_s": args.aging,
+                         "timeout_s": args.timeout, "repeats": args.repeats,
+                         "starvation_s": args.starvation, "order_seed": args.seed}}
+
+    def describe_workload():
+        report.update({
+            "workload_sha256": hashlib.sha256(json.dumps(workload, sort_keys=True).encode()).hexdigest(),
+            "workload_seed": workload.get("seed"),
+            "workload_summary": {
+                "input_tokens": distribution([r["input_tokens"] for r in workload["requests"]]),
+                "arrival_s": distribution([r["arrival_s"] for r in workload["requests"]]),
+                "token_count_sources": sorted({r["input_tokens_source"] for r in workload["requests"]})}})
+
+    describe_workload()
+    output.workload(workload)
+    output.snapshot(report)
+    backend = None
+    stage = "backend_setup"
     try:
-        if args.tokenize:
-            await tokenize(workload, backend)
-            if evidence == "scripted_http_not_llm":
-                for r in workload["requests"]:
-                    r["input_tokens_source"] = "scripted_word_count"
-        digest = hashlib.sha256(json.dumps(workload, sort_keys=True).encode()).hexdigest()
-        report = {"schema_version": 1, "evidence": evidence, "model": args.model,
-                  "workload_sha256": digest, "workload_seed": workload.get("seed"),
-                  "config": {"concurrency": args.concurrency, "aging_s": args.aging,
-                             "timeout_s": args.timeout, "repeats": args.repeats,
-                             "order_seed": args.seed},
-                  "workload_summary": {"input_tokens": distribution([r["input_tokens"] for r in workload["requests"]]),
-                      "arrival_s": distribution([r["arrival_s"] for r in workload["requests"]]),
-                      "token_count_sources": sorted({r["input_tokens_source"] for r in workload["requests"]})}, "runs": []}
-        rng = random.Random(args.seed)
-        for repeat in range(args.repeats):
-            policies = list(POLICIES) if args.policy == "all" else [args.policy]
-            rng.shuffle(policies)
-            for policy in policies:
-                records, elapsed = await run(workload, backend, policy, args.concurrency, args.aging)
-                report["runs"].append({"policy": policy, "repeat": repeat,
-                    "metrics": summarize(records, elapsed, args.starvation),
+        try:
+            backend = OpenAIBackend(url, args.model, os.environ.get(args.api_key_env), args.timeout, args.logprobs)
+            if args.tokenize:
+                stage = "tokenize"
+                await tokenize(workload, backend)
+                if evidence == "scripted_http_not_llm":
+                    for r in workload["requests"]:
+                        r["input_tokens_source"] = "scripted_word_count"
+                describe_workload()
+                stage = "persist"
+                output.workload(workload)
+                output.snapshot(report)
+            for entry in plan:
+                stage = "run"
+                records, elapsed = await run(workload, backend, entry["policy"], args.concurrency, args.aging)
+                stage = "summarize"
+                result = {**entry, "metrics": summarize(records, elapsed, args.starvation),
                     "by_kind": {kind: summarize([r for r in records if r["kind"] == kind], elapsed, args.starvation)
-                                for kind in sorted({r["kind"] for r in records})}, "requests": records})
-        out = Path(args.output)
-        out.mkdir(parents=True, exist_ok=True)
-        (out / "workload.json").write_text(json.dumps(workload, indent=2) + "\n")
-        (out / "report.json").write_text(json.dumps(report, indent=2) + "\n")
-        (out / "report.md").write_text(markdown(report))
-        print(markdown(report))
-        return int(any(r["metrics"]["failed"] or r["metrics"]["blocked"] or r["metrics"]["expired"] for r in report["runs"]))
-    finally:
-        await backend.close()
+                                for kind in sorted({r["kind"] for r in records})}, "requests": records}
+                report["runs"].append(result)
+                stage = "persist"
+                output.snapshot(report)
+            stage = "backend_close"
+        finally:
+            if backend is not None:
+                await backend.close()
+    except (asyncio.CancelledError, KeyboardInterrupt):
+        report["batch_status"] = "interrupted"
+        if stage != "persist":
+            output.snapshot(report)
+        raise
+    except Exception as exc:
+        report.update(batch_status="error", error_type=type(exc).__name__, error_stage=stage)
+        if stage != "persist":
+            output.snapshot(report)
+        raise
+    report["batch_status"] = "completed"
+    output.snapshot(report)
+    print(markdown(report))
+    return int(any(r["metrics"]["failed"] or r["metrics"]["blocked"] or r["metrics"]["expired"] for r in report["runs"]))
 
 
 async def execute(args):
@@ -86,7 +122,7 @@ def main():
         p.add_argument("--tokenize", action="store_true", help="Use vLLM /tokenize before timed runs")
         p.add_argument("--logprobs", action="store_true", help="Request token counts per chunk; unsupported servers may reject")
         p.add_argument("--api-key-env", default="SERVING_LAB_API_KEY")
-        p.add_argument("--output", default="results/latest")
+        p.add_argument("--output", help="New result directory; default: unique results/run-<UTC>-<suffix>")
     args = parser.parse_args()
     if not all(math.isfinite(v) and v > 0 for v in (args.timeout, args.starvation, args.aging)) or args.repeats < 1 or args.concurrency < 1:
         parser.error("repeats, timeout and starvation threshold must be positive")

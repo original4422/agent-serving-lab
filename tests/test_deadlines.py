@@ -236,7 +236,7 @@ class DeadlineTests(unittest.IsolatedAsyncioTestCase):
         with TemporaryDirectory() as directory:
             work = workload(1)
             work["requests"][0]["deadline_s"] = 1e-9
-            path = Path(directory) / "workload.json"
+            path = Path(directory) / "input.json"
             path.write_text(json.dumps(work))
             args = SimpleNamespace(workload=str(path), model="test", api_key_env="SERVING_LAB_TEST_UNUSED",
                                    timeout=2, logprobs=False, tokenize=False, concurrency=1, aging=.2,
