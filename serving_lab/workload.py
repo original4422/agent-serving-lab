@@ -1,6 +1,7 @@
 """Seeded, serializable synthetic request graphs."""
 import random
 import math
+from .tasks import validate_tasks
 
 PROFILES = ("agent-mix", "mixed-burst", "short-stream")
 
@@ -75,6 +76,8 @@ def validate(workload):
                 raise ValueError("missing dependency or dependency cycle")
             seen.add(parent)
             parent = parents[parent]
+
+    validate_tasks(workload)
 
 
 async def tokenize(workload, backend):

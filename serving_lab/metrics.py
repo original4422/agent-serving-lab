@@ -21,7 +21,7 @@ def summarize(records, elapsed, starvation_s):
         "expired": sum(r["status"] == "expired" for r in records),
         "expiration_rate": sum(r["status"] == "expired" for r in records) / len(records) if records else None,
         "expired_queue_s": distribution([r["end_s"] - r["released_s"] for r in records
-                                         if r.get("error") == "deadline_before_admission"]),
+                                         if r.get("error") in ("deadline_before_admission", "task_deadline_before_admission")]),
         "blocked": sum(r["status"] == "blocked" for r in records),
         "failure_rate": sum(r["status"] == "failed" for r in records) / len(records) if records else None,
         "elapsed_s": elapsed, "success_requests_per_s": len(ok) / elapsed,
@@ -39,6 +39,14 @@ def summarize(records, elapsed, starvation_s):
     metrics["output_tokens_per_s"] = sum(counts) / elapsed if counts and all(n is not None for n in counts) else None
     metrics["usage_coverage"] = sum(n is not None for n in counts)
     return metrics
+
+
+def summarize_tasks(tasks):
+    ok = [task for task in tasks if task["status"] == "ok"]
+    return {"tasks": len(tasks), "succeeded": len(ok),
+            "failed": sum(task["status"] == "failed" for task in tasks),
+            "expired": sum(task["status"] == "expired" for task in tasks),
+            "e2e_s": distribution([task["end_s"] - task["arrival_s"] for task in ok])}
 
 
 def markdown(report):
@@ -60,6 +68,16 @@ def markdown(report):
             queue = " / ".join(fmt(m["queue_s"][k]) for k in ("mean", "p95", "max"))
             e2e = " / ".join(fmt(m["e2e_s"][k]) for k in ("mean", "p95", "max"))
             lines.append(f"| {run['repeat'] + 1} | {run['policy']} | {kind} | {m['succeeded']} / {m['failed']} / {m['blocked']} | {m.get('expired', 0)} | {queue} | {e2e} |")
+    if any("tasks" in run for run in report["runs"]):
+        lines.extend(["", "## Whole-task budgets", "",
+                      "| Repeat | Policy | Tasks | Timely / failed / expired | Timely E2E mean / p95 (s) |",
+                      "|---:|---|---:|---:|---:|"])
+        for run in report["runs"]:
+            if "task_metrics" not in run:
+                continue
+            m = run["task_metrics"]
+            lines.append(f"| {run['repeat'] + 1} | {run['policy']} | {m['tasks']} | {m['succeeded']} / {m['failed']} / {m['expired']} | {fmt(m['e2e_s']['mean'])} / {fmt(m['e2e_s']['p95'])} |")
+        lines.extend(["", "Each declared linear task counts once; timely completion requires every stage to succeed before the task deadline."])
     lines.extend(["", "Full per-request timing, token coverage, chunk intervals and starvation-threshold counts are in JSON.",
                   "Policies share the same workload; dependency release times depend on parent completion.", ""])
     return "\n".join(lines)

@@ -99,6 +99,31 @@ Custom workload JSON uses the same schema as the saved file. Each request has a 
 
 `--repeats` randomizes policy order using `--seed` and reports each repetition separately. A single noisy run does not establish a winner. Server caches are not reset; prepare comparable server conditions when measuring policy effects.
 
+### Share one budget across a whole task
+
+Optional `tasks` declare complete, non-overlapping linear chains. Each task has a unique `id`, ordered `request_ids` and positive finite `deadline_s`. The first request has no parent; every next request's `after` names its predecessor. A task may contain one request. Branches, missing members, reused members and dependencies entering or leaving a task are rejected. Requests outside tasks keep their existing behavior.
+
+```json
+"tasks": [
+  {"id": "inventory-answer", "request_ids": ["lookup", "summary"], "deadline_s": 1.0}
+]
+```
+
+A task's clock starts at its root request's `arrival_s`. Its fixed deadline includes queueing, every stream, tool delays and later request arrivals. A request keeps its own release-relative `deadline_s`; the earlier deadline limits admission and streaming. Equal deadlines are attributed to the task. The independent HTTP `--timeout` still produces a failed request when it expires first.
+
+At the task deadline, a queued step expires without HTTP. A step whose eligible release is at or after the task deadline expires with `task_deadline_before_release`; it has neither `released_s` nor `admitted_s` and is excluded from queue statistics, including when a late scheduler wakeup observes both times already past. Following steps become blocked. An active stream receives the same fixed absolute deadline and closes locally when it expires, recording `task_deadline_during_stream`. Completed steps retain their original results.
+
+Each round adds `tasks` and `task_metrics` to its JSON and a whole-task table to Markdown. A task counts as timely only when every step succeeds and the final observed completion is strictly before its deadline. Completion at or after the deadline is expired even when all request records say `ok`. Ordinary request failures make the task failed; either request-budget or task-budget expiry makes it expired. Task records contain the root arrival, fixed deadline, observed end, deciding request and reason. Request records carry `task_id`, task timing, `effective_deadline_s` and `deadline_source` (`task` or `request`); absolute times are relative to workload time zero. Successful task latency runs from root arrival to final completion. Each chain counts once, and any unsuccessful task makes the CLI exit nonzero.
+
+Run the complete fictional example:
+
+```sh
+uv run agent-serving-lab demo --workload examples/task-deadlines.json \
+  --policy fcfs --concurrency 2 --output results/task-deadlines
+```
+
+It finishes the two-step inventory task and an independent request, then expires the shipment task during its two-second tool wait. The expected report has **4 successful requests, 1 expired request and 1 blocked request**, but **1 timely task and 1 expired task**. The command exits **1**. This is a scripted functional example; tool waits and subsequent request messages are fixed workload inputs.
+
 ## Saved progress and interrupted experiments
 
 The CLI saves the frozen workload and planned policy/repetition order before measurement, then saves each completed round before starting the next. Saving happens outside the round's measured duration. `report.json` is the authoritative snapshot; `report.md` is generated from it and can lag if writing is interrupted.

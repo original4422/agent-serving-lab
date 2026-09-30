@@ -7,7 +7,8 @@ import os
 from pathlib import Path
 import random
 from .backend import OpenAIBackend
-from .metrics import markdown, summarize, distribution
+from .metrics import markdown, summarize, summarize_tasks, distribution
+from .tasks import outcomes
 from .mock_server import serve
 from .reporting import Output
 from .scheduler import POLICIES, run
@@ -71,6 +72,9 @@ async def experiment(args, url, evidence):
                 result = {**entry, "metrics": summarize(records, elapsed, args.starvation),
                     "by_kind": {kind: summarize([r for r in records if r["kind"] == kind], elapsed, args.starvation)
                                 for kind in sorted({r["kind"] for r in records})}, "requests": records}
+                if workload.get("tasks"):
+                    result["tasks"] = outcomes(workload, records)
+                    result["task_metrics"] = summarize_tasks(result["tasks"])
                 report["runs"].append(result)
                 stage = "persist"
                 output.snapshot(report)
@@ -91,7 +95,8 @@ async def experiment(args, url, evidence):
     report["batch_status"] = "completed"
     output.snapshot(report)
     print(markdown(report))
-    return int(any(r["metrics"]["failed"] or r["metrics"]["blocked"] or r["metrics"]["expired"] for r in report["runs"]))
+    return int(any(r["metrics"]["failed"] or r["metrics"]["blocked"] or r["metrics"]["expired"]
+                   or any(task["status"] != "ok" for task in r.get("tasks", [])) for r in report["runs"]))
 
 
 async def execute(args):
