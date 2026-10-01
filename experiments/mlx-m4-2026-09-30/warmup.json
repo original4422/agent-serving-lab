@@ -1,0 +1,494 @@
+[
+  {
+    "id": "r0",
+    "duration_s": 1.4175605829805136,
+    "chunk_times_s": [
+      1.3396506672725081,
+      1.3463375000283122,
+      1.352827625349164,
+      1.359042167197913,
+      1.365934958215803,
+      1.3724272083491087,
+      1.3792209173552692,
+      1.3857845002785325,
+      1.392000500112772,
+      1.3980084173381329,
+      1.4042325420305133,
+      1.4171776250004768
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 40,
+      "completion_tokens": 12,
+      "total_tokens": 52,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r1",
+    "duration_s": 0.4645028752274811,
+    "chunk_times_s": [
+      0.38956166710704565,
+      0.39630262507125735,
+      0.40254683420062065,
+      0.40894487500190735,
+      0.41569633409380913,
+      0.42218049988150597,
+      0.4286639168858528,
+      0.43476575007662177,
+      0.4409671672619879,
+      0.4475559592247009,
+      0.4536689589731395,
+      0.46410237485542893
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 554,
+      "completion_tokens": 12,
+      "total_tokens": 566,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r2",
+    "duration_s": 0.22706274967640638,
+    "chunk_times_s": [
+      0.14758350001648068,
+      0.15315995877608657,
+      0.15913258399814367,
+      0.16505099972710013,
+      0.17077079182490706,
+      0.17632966674864292,
+      0.1824729167856276,
+      0.18881741678342223,
+      0.1951213339343667,
+      0.2017250000499189,
+      0.21745937503874302,
+      0.22675208374857903
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 91,
+      "completion_tokens": 12,
+      "total_tokens": 103,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r3",
+    "duration_s": 0.19660324975848198,
+    "chunk_times_s": [
+      0.13134479196742177,
+      0.1368095837533474,
+      0.14235237473621964,
+      0.14789899997413158,
+      0.15364791685715318,
+      0.15922079188749194,
+      0.1645792918279767,
+      0.16995733371004462,
+      0.17553529189899564,
+      0.18108108406886458,
+      0.18665937473997474,
+      0.19629220897331834
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 48,
+      "completion_tokens": 12,
+      "total_tokens": 60,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r4",
+    "duration_s": 0.19844008283689618,
+    "chunk_times_s": [
+      0.12819229066371918,
+      0.13445204077288508,
+      0.1404310828074813,
+      0.1468417076393962,
+      0.15232304064556956,
+      0.15820004092529416,
+      0.16372491559013724,
+      0.16944379080086946,
+      0.17517483280971646,
+      0.18186695780605078,
+      0.18903712462633848,
+      0.19810983259230852
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 47,
+      "completion_tokens": 12,
+      "total_tokens": 59,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r5",
+    "duration_s": 0.44384408416226506,
+    "chunk_times_s": [
+      0.36936170887202024,
+      0.37555374996736646,
+      0.38196075009182096,
+      0.388560916762799,
+      0.3950718748383224,
+      0.40122462483122945,
+      0.4074148749932647,
+      0.4138947920873761,
+      0.42001837491989136,
+      0.42660833382979035,
+      0.43303658394142985,
+      0.443486750125885
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 671,
+      "completion_tokens": 12,
+      "total_tokens": 683,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r6",
+    "duration_s": 0.22003508266061544,
+    "chunk_times_s": [
+      0.1520602498203516,
+      0.15768587496131659,
+      0.16314608277752995,
+      0.16946054063737392,
+      0.1750790406949818,
+      0.18066854076460004,
+      0.1861740406602621,
+      0.19182166596874595,
+      0.1972718327306211,
+      0.20342512475326657,
+      0.209090415854007,
+      0.21972425002604723
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 80,
+      "completion_tokens": 12,
+      "total_tokens": 92,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r7",
+    "duration_s": 0.20401166612282395,
+    "chunk_times_s": [
+      0.13950887508690357,
+      0.1449227500706911,
+      0.15031700022518635,
+      0.1555852498859167,
+      0.16088608326390386,
+      0.16636587493121624,
+      0.17179029108956456,
+      0.177326625213027,
+      0.182693624868989,
+      0.18803912494331598,
+      0.19351975014433265,
+      0.20367783308029175
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 38,
+      "completion_tokens": 12,
+      "total_tokens": 50,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r8",
+    "duration_s": 0.21069633308798075,
+    "chunk_times_s": [
+      0.13891808316111565,
+      0.14487062487751245,
+      0.15030962508171797,
+      0.15622941590845585,
+      0.161810124758631,
+      0.16727616591379046,
+      0.17315699998289347,
+      0.1787693747319281,
+      0.18441537488251925,
+      0.19078283291310072,
+      0.1973249581642449,
+      0.21018470777198672
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 60,
+      "completion_tokens": 12,
+      "total_tokens": 72,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r9",
+    "duration_s": 0.43648933386430144,
+    "chunk_times_s": [
+      0.3576366249471903,
+      0.36432649986818433,
+      0.3704260000959039,
+      0.3765577501617372,
+      0.3826636248268187,
+      0.3901115842163563,
+      0.3962049591355026,
+      0.40380570897832513,
+      0.40994620881974697,
+      0.4172474998049438,
+      0.4233662090264261,
+      0.4360777921974659
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 561,
+      "completion_tokens": 12,
+      "total_tokens": 573,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r10",
+    "duration_s": 0.2467838330194354,
+    "chunk_times_s": [
+      0.1504157497547567,
+      0.1562014576047659,
+      0.16313183261081576,
+      0.16934187477454543,
+      0.1749382079578936,
+      0.18424199987202883,
+      0.19377945782616735,
+      0.2120916247367859,
+      0.2201803750358522,
+      0.2285694577731192,
+      0.235342166852206,
+      0.24632270773872733
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 75,
+      "completion_tokens": 12,
+      "total_tokens": 87,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "r11",
+    "duration_s": 0.25945779075846076,
+    "chunk_times_s": [
+      0.19276279071345925,
+      0.19878562493249774,
+      0.20425595762208104,
+      0.2097112499177456,
+      0.21510925004258752,
+      0.22076004091650248,
+      0.2264630408026278,
+      0.23211962496861815,
+      0.23753508273512125,
+      0.24310391582548618,
+      0.2489079157821834,
+      0.25906662503257394
+    ],
+    "chunk_token_counts": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "usage": {
+      "prompt_tokens": 38,
+      "completion_tokens": 12,
+      "total_tokens": 50,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "error": null
+  }
+]
