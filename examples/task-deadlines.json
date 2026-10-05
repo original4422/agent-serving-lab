@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "seed": 42,
+  "tasks": [
+    {
+      "id": "inventory-answer",
+      "request_ids": [
+        "lookup",
+        "summary"
+      ],
+      "deadline_s": 2
+    },
+    {
+      "id": "shipment-answer",
+      "request_ids": [
+        "slow-tool-lookup",
+        "slow-tool-summary",
+        "slow-tool-final"
+      ],
+      "deadline_s": 0.5
+    }
+  ],
+  "requests": [
+    {
+      "id": "lookup",
+      "kind": "short",
+      "arrival_s": 0,
+      "input_tokens": 5,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Find the fictional inventory status."
+        }
+      ],
+      "max_tokens": 4
+    },
+    {
+      "id": "summary",
+      "kind": "tool_followup",
+      "arrival_s": 0,
+      "input_tokens": 5,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize the fictional inventory: available."
+        }
+      ],
+      "max_tokens": 4,
+      "after": "lookup",
+      "tool_delay_s": 0.02
+    },
+    {
+      "id": "slow-tool-lookup",
+      "kind": "short",
+      "arrival_s": 0,
+      "input_tokens": 6,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Look up the fictional shipment status."
+        }
+      ],
+      "max_tokens": 4
+    },
+    {
+      "id": "slow-tool-summary",
+      "kind": "tool_followup",
+      "arrival_s": 0,
+      "input_tokens": 5,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize the fictional shipment: delivered."
+        }
+      ],
+      "max_tokens": 4,
+      "after": "slow-tool-lookup",
+      "tool_delay_s": 2
+    },
+    {
+      "id": "slow-tool-final",
+      "kind": "tool_followup",
+      "arrival_s": 0,
+      "input_tokens": 5,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Format the fictional shipment summary."
+        }
+      ],
+      "max_tokens": 4,
+      "after": "slow-tool-summary",
+      "tool_delay_s": 0
+    },
+    {
+      "id": "independent",
+      "kind": "short",
+      "arrival_s": 0,
+      "input_tokens": 5,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Describe a fictional blue notebook."
+        }
+      ],
+      "max_tokens": 4
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "seed": 42,
+  "requests": [
+    {
+      "id": "hold-slot",
+      "kind": "short",
+      "arrival_s": 0.0,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 200,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory inventory "
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "queued",
+      "kind": "long",
+      "arrival_s": 0.0,
+      "after": null,
+      "tool_delay_s": 0,
+      "input_tokens": 3,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize one item."
+        }
+      ],
+      "max_tokens": 12,
+      "deadline_s": 0.005
+    },
+    {
+      "id": "dependent",
+      "kind": "tool_followup",
+      "arrival_s": 0.0,
+      "after": "queued",
+      "tool_delay_s": 0,
+      "input_tokens": 3,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize one item."
+        }
+      ],
+      "max_tokens": 12
+    },
+    {
+      "id": "after-success",
+      "kind": "burst",
+      "arrival_s": 0.0,
+      "after": "hold-slot",
+      "tool_delay_s": 0.03,
+      "input_tokens": 3,
+      "input_tokens_source": "word_estimate",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Summarize one item."
+        }
+      ],
+      "max_tokens": 12,
+      "deadline_s": 0.5
+    }
+  ]
+}

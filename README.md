@@ -15,7 +15,7 @@ uv sync --locked
 uv run agent-serving-lab demo --logprobs --repeats 2
 ```
 
-This starts a local HTTP/SSE server, runs all three policies, and writes `results/latest/{workload.json,report.json,report.md}`. **The demo is scripted, not an LLM benchmark.** Its timings verify the client, scheduler and reports; they are not evidence of model speed or policy improvements.
+This starts a local HTTP/SSE server, runs all three policies, and creates a unique `results/run-<UTC timestamp>-<suffix>/` directory containing `workload.json`, `report.json` and `report.md`. The CLI prints its absolute path before running requests. **The demo is scripted, not an LLM benchmark.** Its timings verify the client, scheduler and reports; they are not evidence of model speed or policy improvements.
 
 Run tests:
 
@@ -37,7 +37,7 @@ uv run agent-serving-lab run \
 
 For authentication, set `SERVING_LAB_API_KEY` in the process environment, or select a different variable with `--api-key-env`. The client does not use ambient HTTP proxies. Keys, endpoint URLs and generated model text are not written to reports. Workload files include prompts; results are gitignored.
 
-`--timeout` is the total deadline of each admitted HTTP request. A failed stream is not retried; its dependent requests are marked blocked. The CLI exits nonzero when any request fails or is blocked.
+`--timeout` is the total deadline of each admitted HTTP request. A failed stream is not retried; its dependent requests are marked blocked. Optional workload `deadline_s` also budgets queueing (see below). The CLI exits nonzero when any request fails, expires or is blocked.
 
 External runs are labeled `external_backend_unverified`: the tool cannot determine whether an endpoint runs a real model. When sharing a real experiment, record model revision, server version/arguments, hardware, tokenizer, cache/warm-up conditions and competing traffic alongside the output.
 
@@ -75,17 +75,73 @@ uv run agent-serving-lab demo --profile short-stream --count 16 \
 Replay a saved workload or select one policy:
 
 ```sh
-uv run agent-serving-lab demo --workload results/latest/workload.json \
+uv run agent-serving-lab demo --workload "results/run-<UTC timestamp>-<suffix>/workload.json" \
   --policy aging --aging 0.15 --starvation 0.5 --output results/replay
 ```
 
-Custom workload JSON uses the same schema as the saved file. Each request has a unique `id`, `kind`, `arrival_s`, `messages`, positive `input_tokens`, `input_tokens_source`, and `max_tokens`; optional `after` and `tool_delay_s` describe a dependency. Cycles and missing parents are rejected.
+### Budget queueing and streaming together
+
+A request may include `"deadline_s": 0.5` for a 500 ms total budget from its **eligible release**. For a dependent request, that clock starts after its parent completes and the tool delay elapses, or at `arrival_s`, whichever is later. Omitting the field keeps the original behavior. Values must be positive and finite.
+
+- A request still queued at its deadline becomes `expired` with `error: deadline_before_admission`. The scheduler wakes at the deadline even when all slots are occupied, records the observed expiration time, and never sends that request to the server. It has no `admitted_s`. Deadlines are checked again immediately before admission, including when selecting a large batch.
+- An admitted request gets only the remaining budget. Expiration closes the local stream and records `error: deadline_during_stream`, preserving received chunks and usage. This does not guarantee that the server stops inference.
+- `--timeout` remains an independent HTTP budget measured from admission. Whichever limit expires first wins: HTTP timeout is `failed`, workload deadline is `expired`. Neither is retried; their dependents are `blocked`. Blocking propagates through the full dependency chain before waiting for unrelated streams, regardless of request order.
+- Cancelling the whole run propagates cancellation and closes its active client streams; it does not fabricate completed request records.
+
+Try the checked-in scripted example. FCFS admits `hold-slot`, expires `queued` before admission, blocks `dependent`, and completes `after-success` within a budget starting at its own release. The command deliberately exits **1** because a request expires:
+
+```sh
+uv run agent-serving-lab demo --workload examples/deadlines.json \
+  --policy fcfs --concurrency 1 --output results/deadlines
+```
+
+Custom workload JSON uses the same schema as the saved file. Each request has a unique `id`, `kind`, `arrival_s`, `messages`, positive `input_tokens`, `input_tokens_source`, and `max_tokens`; optional `after` and `tool_delay_s` describe a dependency; optional `deadline_s` sets its release-relative budget. Cycles and missing parents are rejected.
 
 `--repeats` randomizes policy order using `--seed` and reports each repetition separately. A single noisy run does not establish a winner. Server caches are not reset; prepare comparable server conditions when measuring policy effects.
 
+### Share one budget across a whole task
+
+Optional `tasks` declare complete, non-overlapping linear chains. Each task has a unique `id`, ordered `request_ids` and positive finite `deadline_s`. The first request has no parent; every next request's `after` names its predecessor. A task may contain one request. Branches, missing members, reused members and dependencies entering or leaving a task are rejected. Requests outside tasks keep their existing behavior.
+
+```json
+"tasks": [
+  {"id": "inventory-answer", "request_ids": ["lookup", "summary"], "deadline_s": 1.0}
+]
+```
+
+A task's clock starts at its root request's `arrival_s`. Its fixed deadline includes queueing, every stream, tool delays and later request arrivals. A request keeps its own release-relative `deadline_s`; the earlier deadline limits admission and streaming. Equal deadlines are attributed to the task. The independent HTTP `--timeout` still produces a failed request when it expires first.
+
+At the task deadline, a queued step expires without HTTP. A step whose eligible release is at or after the task deadline expires with `task_deadline_before_release`; it has neither `released_s` nor `admitted_s` and is excluded from queue statistics, including when a late scheduler wakeup observes both times already past. Following steps become blocked. An active stream receives the same fixed absolute deadline and closes locally when it expires, recording `task_deadline_during_stream`. Completed steps retain their original results.
+
+Each round adds `tasks` and `task_metrics` to its JSON and a whole-task table to Markdown. A task counts as timely only when every step succeeds and the final observed completion is strictly before its deadline. Completion at or after the deadline is expired even when all request records say `ok`. Ordinary request failures make the task failed; either request-budget or task-budget expiry makes it expired. Task records contain the root arrival, fixed deadline, observed end, deciding request and reason. Request records carry `task_id`, task timing, `effective_deadline_s` and `deadline_source` (`task` or `request`); absolute times are relative to workload time zero. Successful task latency runs from root arrival to final completion. Each chain counts once, and any unsuccessful task makes the CLI exit nonzero.
+
+Run the complete fictional example:
+
+```sh
+uv run agent-serving-lab demo --workload examples/task-deadlines.json \
+  --policy fcfs --concurrency 2 --output results/task-deadlines
+```
+
+It finishes the two-step inventory task and an independent request, then expires the shipment task during its two-second tool wait. The expected report has **4 successful requests, 1 expired request and 1 blocked request**, but **1 timely task and 1 expired task**. The command exits **1**. This is a scripted functional example; tool waits and subsequent request messages are fixed workload inputs.
+
+## Saved progress and interrupted experiments
+
+The CLI saves the frozen workload and planned policy/repetition order before measurement, then saves each completed round before starting the next. Saving happens outside the round's measured duration. `report.json` is the authoritative snapshot; `report.md` is generated from it and can lag if writing is interrupted.
+
+Each report includes `batch_status`, `planned_runs`, `completed_runs` and `run_plan`:
+
+- `running`: the batch started but has no recorded terminal state. After a forced process termination, read the completed rounds from this snapshot.
+- `interrupted`: cancellation reached the CLI; completed rounds remain saved.
+- `error`: an unexpected exception stopped the batch. `error_type` and `error_stage` identify the failure without storing arbitrary exception messages.
+- `completed`: every planned round finished. Request-level failures, expirations and blocked dependents keep their existing counts and nonzero exit status.
+
+Incomplete rounds are not added to results. JSON snapshots use a temporary file and atomic replacement; if saving fails, the last successfully replaced JSON remains authoritative and may still say `running`. A terminal status cannot be saved when the output storage is unavailable. Each completed round retains its own timing, requests and metrics; incomplete batches do not imply a completed policy comparison.
+
+The default creates a new output directory on each invocation. Use `--output results/my-run` to choose one. If that directory already contains any of `workload.json`, `report.json` or `report.md`, the command stops before creating a backend or making requests. Pick a new path to keep both experiments. Empty directories and directories containing unrelated files are accepted; unrelated files are retained. There is no automatic resume or retry.
+
 ## Reading the measurements
 
-Times use a monotonic clock. p50/p95 use nearest-rank quantiles. Metrics include mean and maximum overall and by workload kind; the Markdown report shows each repetition and class separately. `failure_rate` is failed requests divided by all workload requests; blocked dependents remain a separate count.
+Times use a monotonic clock. p50/p95 use nearest-rank quantiles. Metrics include mean and maximum overall and by workload kind; the Markdown report shows each repetition and class separately. `failure_rate` is failed requests divided by all workload requests; expired requests and blocked dependents remain separate counts. `expiration_rate` is expired requests divided by all requests. Queue statistics cover admitted requests only; `expired_queue_s` separately reports release-to-expiration waiting for requests that never entered HTTP. TTFT and E2E distributions cover successful requests only, so read them together with status counts.
 
 | Metric | Definition |
 |---|---|

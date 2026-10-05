@@ -21,7 +21,7 @@ class OpenAIBackend:
         response.raise_for_status()
         return response.json()
 
-    async def stream(self, request):
+    async def stream(self, request, *, deadline_at=None):
         start = time.perf_counter()
         events, token_counts, usage = [], [], {}
         payload = {"model": self.model, "messages": request["messages"],
@@ -29,8 +29,9 @@ class OpenAIBackend:
                    "stream": True, "stream_options": {"include_usage": True}}
         if self.logprobs:
             payload["logprobs"] = True
+        deadline = asyncio.timeout_at(deadline_at)
         try:
-            async with asyncio.timeout(self.timeout):
+            async with deadline, asyncio.timeout(self.timeout):
                 async with self.client.stream("POST", self.base_url + "/chat/completions", json=payload) as response:
                     response.raise_for_status()
                     data_lines = []
@@ -62,6 +63,7 @@ class OpenAIBackend:
             error = None
         except (httpx.HTTPError, TimeoutError, ValueError, KeyError, TypeError) as exc:
             # Do not persist server bodies, URLs or arbitrary exception messages.
-            error = f"http_{exc.response.status_code}" if isinstance(exc, httpx.HTTPStatusError) else type(exc).__name__
+            error = "deadline_during_stream" if deadline.expired() else (
+                f"http_{exc.response.status_code}" if isinstance(exc, httpx.HTTPStatusError) else type(exc).__name__)
         return {"duration_s": time.perf_counter() - start, "chunk_times_s": events,
                 "chunk_token_counts": token_counts, "usage": usage, "error": error}

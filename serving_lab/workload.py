@@ -1,6 +1,7 @@
 """Seeded, serializable synthetic request graphs."""
 import random
 import math
+from .tasks import validate_tasks
 
 PROFILES = ("agent-mix", "mixed-burst", "short-stream")
 
@@ -66,6 +67,8 @@ def validate(workload):
             raise ValueError("workload numbers must be finite")
         if r["arrival_s"] < 0 or r.get("tool_delay_s", 0) < 0 or r["input_tokens"] <= 0 or r["max_tokens"] <= 0:
             raise ValueError("invalid arrival, delay or token count")
+        if "deadline_s" in r and (not math.isfinite(r["deadline_s"]) or r["deadline_s"] <= 0):
+            raise ValueError("deadline_s must be positive and finite")
         seen = {r["id"]}
         parent = parents[r["id"]]
         while parent:
@@ -73,6 +76,8 @@ def validate(workload):
                 raise ValueError("missing dependency or dependency cycle")
             seen.add(parent)
             parent = parents[parent]
+
+    validate_tasks(workload)
 
 
 async def tokenize(workload, backend):
