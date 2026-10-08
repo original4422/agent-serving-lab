@@ -6,11 +6,12 @@ import httpx
 
 
 class OpenAIBackend:
-    def __init__(self, base_url, model, api_key=None, timeout=60, logprobs=False):
+    def __init__(self, base_url, model, api_key=None, timeout=60, logprobs=False, *, max_connections=100):
         self.base_url = base_url.rstrip("/")
         self.model, self.timeout, self.logprobs = model, timeout, logprobs
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-        self.client = httpx.AsyncClient(headers=headers, timeout=timeout, trust_env=False)
+        limits = httpx.Limits(max_connections=max_connections, max_keepalive_connections=20)
+        self.client = httpx.AsyncClient(headers=headers, timeout=timeout, trust_env=False, limits=limits)
 
     async def close(self):
         await self.client.aclose()
@@ -24,6 +25,7 @@ class OpenAIBackend:
     async def stream(self, request, *, deadline_at=None):
         start = time.perf_counter()
         events, token_counts, usage = [], [], {}
+        finish_reason = None
         payload = {"model": self.model, "messages": request["messages"],
                    "max_tokens": request["max_tokens"], "temperature": 0,
                    "stream": True, "stream_options": {"include_usage": True}}
@@ -53,6 +55,8 @@ class OpenAIBackend:
                             choices = obj.get("choices", [])
                             if choices:
                                 choice = choices[0]
+                                if choice.get("finish_reason") is not None:
+                                    finish_reason = choice["finish_reason"]
                                 delta = choice.get("delta", {})
                                 if delta.get("content") or delta.get("reasoning_content") or delta.get("tool_calls"):
                                     events.append(time.perf_counter() - start)
@@ -66,4 +70,5 @@ class OpenAIBackend:
             error = "deadline_during_stream" if deadline.expired() else (
                 f"http_{exc.response.status_code}" if isinstance(exc, httpx.HTTPStatusError) else type(exc).__name__)
         return {"duration_s": time.perf_counter() - start, "chunk_times_s": events,
-                "chunk_token_counts": token_counts, "usage": usage, "error": error}
+                "chunk_token_counts": token_counts, "usage": usage,
+                "finish_reason": finish_reason, "error": error}

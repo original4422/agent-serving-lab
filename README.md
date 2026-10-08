@@ -37,6 +37,8 @@ uv run agent-serving-lab run \
 
 For authentication, set `SERVING_LAB_API_KEY` in the process environment, or select a different variable with `--api-key-env`. The client does not use ambient HTTP proxies. Keys, endpoint URLs and generated model text are not written to reports. Workload files include prompts; results are gitignored.
 
+`--concurrency` caps admitted HTTP operations. The CLI sets its HTTP connection capacity to the same value, so admission above 100 is no longer capped by a second transport queue. The existing limit of 20 idle keep-alive connections remains; request/task deadlines and HTTP timeout keep their meanings. Python callers constructing `OpenAIBackend` directly can pass `max_connections=concurrency`; omitting it retains the previous 100-connection constructor default.
+
 `--timeout` is the total deadline of each admitted HTTP request. A failed stream is not retried; its dependent requests are marked blocked. Optional workload `deadline_s` also budgets queueing (see below). The CLI exits nonzero when any request fails, expires or is blocked.
 
 External runs are labeled `external_backend_unverified`: the tool cannot determine whether an endpoint runs a real model. When sharing a real experiment, record model revision, server version/arguments, hardware, tokenizer, cache/warm-up conditions and competing traffic alongside the output.
@@ -62,8 +64,24 @@ Each tool follow-up waits for its parent to finish plus a 30 ms tool delay. It r
 | `fcfs` | Earliest release, then workload order |
 | `shortest-input` | Smallest known input token count/estimate, then FIFO |
 | `aging` | Requests waiting at least `--aging` seconds go first in FIFO order; remaining requests use shortest input |
+| `earliest-deadline` (opt-in) | Earliest effective task/request deadline among ready requests, then release time and workload order; requests without deadlines go last |
+
+`--policy all` runs the original three-policy baseline: FCFS, shortest-input and aging. Its seeded order and number of runs are unchanged. Select `--policy earliest-deadline` explicitly to run the deadline strategy alone. With no declared deadlines it follows FCFS.
 
 All policies are non-preemptive with the same `--concurrency` cap. They never use actual future output lengths. Aging stops new short requests from overtaking an already overdue request; occupied slots still have to complete or time out. A finite run's long wait is reported as a threshold violation, not proof of infinite starvation.
+
+Deadline admission uses the same effective budget as expiration and streaming: the earlier of the task's fixed deadline and the request's release-relative deadline. Equal task/request deadlines retain task attribution. Only eligible requests compete; future arrivals, unfinished parents and tool waits stay outside the ready queue. A newly urgent request does not preempt an active stream. Every task stage competes separately, without reserving its next slot or predicting future service time.
+
+Compare the baseline and opt-in policy over one saved workload by selecting separate output directories:
+
+```sh
+uv run agent-serving-lab demo --workload examples/task-deadlines.json \
+  --policy all --concurrency 2 --output results/task-baseline
+uv run agent-serving-lab demo --workload examples/task-deadlines.json \
+  --policy earliest-deadline --concurrency 2 --output results/task-earliest
+```
+
+That functional example includes an intentional task expiry, so each command exits 1 after saving its report. For a model endpoint, the same policy option is available with `run`.
 
 Two additional generated profiles expose waiting tradeoffs: `mixed-burst` puts a long input at every fourth position in one arrival burst; `short-stream` puts two long inputs behind two initial short requests, then releases a finite stream of short inputs every 120 ms. Both use a 64-token output cap and require at least eight requests. Their input sizes remain word estimates.
 
@@ -124,6 +142,29 @@ uv run agent-serving-lab demo --workload examples/task-deadlines.json \
 
 It finishes the two-step inventory task and an independent request, then expires the shipment task during its two-second tool wait. The expected report has **4 successful requests, 1 expired request and 1 blocked request**, but **1 timely task and 1 expired task**. The command exits **1**. This is a scripted functional example; tool waits and subsequent request messages are fixed workload inputs.
 
+### A fixed deadline-admission tradeoff
+
+[Deterministic tests](tests/test_deadline_admission.py) compare two two-stage tasks, A and B, arriving at time zero with concurrency 1 and aging threshold 0.2. A has input estimate 1 per stage; B has 10. Tool delays are zero. A fake backend advances a controlled clock; service durations live only in that backend, outside the admission policy's inputs. These are simulated examples, not model measurements.
+
+In the first case, A's budget is 4 seconds and B's is 1; each stage takes a simulated 0.375 seconds. In the second case, A's budget is 0.625 seconds with 0.125-second stages; B's is 0.375 seconds but its first stage requires 0.5 seconds. B cannot finish within that second budget even when admitted first.
+
+| Case | Policy | Timely tasks / total | A root queue (simulated s) | A outcome (simulated s) |
+|---|---|---:|---:|---|
+| Urgent B can finish | fcfs | 1 / 2 | 0 | completed at 1.125 |
+| Urgent B can finish | shortest-input | 1 / 2 | 0 | completed at 0.75 |
+| Urgent B can finish | aging | 1 / 2 | 0 | completed at 1.125 |
+| Urgent B can finish | earliest-deadline | 2 / 2 | 0.75 | completed at 1.5 |
+| Urgent B cannot finish | fcfs | 1 / 2 | 0 | completed at 0.5 |
+| Urgent B cannot finish | shortest-input | 1 / 2 | 0 | completed at 0.25 |
+| Urgent B cannot finish | aging | 1 / 2 | 0 | completed at 0.25 |
+| Urgent B cannot finish | earliest-deadline | 0 / 2 | 0.375 | expired at 0.625 |
+
+Deadline ordering saves B in the first case while delaying A. In the second, spending the earliest budget on B also makes A miss its deadline. The option lets users inspect that tradeoff using task outcomes and request queueing together. Reproduce the fixed cases without a model:
+
+```sh
+uv run python -m unittest discover -s tests -p test_deadline_admission.py -v
+```
+
 ## Saved progress and interrupted experiments
 
 The CLI saves the frozen workload and planned policy/repetition order before measurement, then saves each completed round before starting the next. Saving happens outside the round's measured duration. `report.json` is the authoritative snapshot; `report.md` is generated from it and can lag if writing is interrupted.
@@ -140,6 +181,10 @@ Incomplete rounds are not added to results. JSON snapshots use a temporary file 
 The default creates a new output directory on each invocation. Use `--output results/my-run` to choose one. If that directory already contains any of `workload.json`, `report.json` or `report.md`, the command stops before creating a backend or making requests. Pick a new path to keep both experiments. Empty directories and directories containing unrelated files are accepted; unrelated files are retained. There is no automatic resume or retry.
 
 ## Reading the measurements
+
+Each admitted stream records `finish_reason` from the first choice: the last non-null value wins, and later missing/null fields or usage-only chunks leave it unchanged. Missing telemetry stays `null`; unrecognized reason strings are retained. Successful requests contribute to `finish_reason_counts` and `finish_reason_missing` overall and by workload kind, with per-round counts in Markdown. A failed or expired stream can retain an observed reason but is excluded from those successful-stream counts. Records from older reports without the field count as missing when summarized; historical reports are not rewritten.
+
+`ok` means the transport completed successfully. For example, server-reported `length` identifies a generation-limit ending and `tool_calls` identifies a tool-call ending; both remain `ok`, with unchanged task status, exit code and throughput accounting. Finish reasons do not establish answer quality or business-task success. Token counts alone do not determine the reason, including in the existing capped MLX experiments.
 
 Times use a monotonic clock. p50/p95 use nearest-rank quantiles. Metrics include mean and maximum overall and by workload kind; the Markdown report shows each repetition and class separately. `failure_rate` is failed requests divided by all workload requests; expired requests and blocked dependents remain separate counts. `expiration_rate` is expired requests divided by all requests. Queue statistics cover admitted requests only; `expired_queue_s` separately reports release-to-expiration waiting for requests that never entered HTTP. TTFT and E2E distributions cover successful requests only, so read them together with status counts.
 
@@ -160,10 +205,13 @@ TTFT is a client-observed first-output approximation; ordinary streams do not ex
 ## Verified status
 
 - Local scripted HTTP/SSE integration, chunked transfer and fragmented UTF-8.
+- [Connection-capacity regression](tests/test_connection_capacity.py): all 128 admitted requests reach a held localhost server before any stream is released; cancellation at concurrency 2 frees the client streams, a follow-up succeeds, and fully consumed tokenization responses reuse a keep-alive connection.
 - Deterministic policy ordering, aging promotion, bounded concurrency and dependency failure propagation.
 - Deadline and truncated-stream failures, token telemetry gaps, exact metric arithmetic.
 - Real Qwen3-0.6B inference through MLX/Metal on Apple M4: 72/72 successful requests, with [reproduction commands and measurements](experiments/mlx-m4-2026-09-30/README.md).
 - Two longer-generation admission workloads: 192/192 successful requests, with [short/long latency tradeoffs and frozen replay inputs](experiments/mlx-admission-2026-09-30/README.md).
+
+A controlled localhost probe originally found 128 admitted requests but only 100 server arrivals while those streams were held open. The remaining 28 exhausted their request budgets without reaching the server; the longer pool timeout did not fire. The connection-capacity regression now checks exact arrivals before releasing streams. These counts verify transport behavior, not model throughput; closing a client stream still does not prove server inference has stopped.
 
 ## References and license
 

@@ -3,12 +3,28 @@ import asyncio
 from .workload import validate
 from .tasks import task_index
 
-POLICIES = ("fcfs", "shortest-input", "aging")
+POLICIES = ("fcfs", "shortest-input", "aging")  # Default comparison remains unchanged.
+OPT_IN_POLICIES = ("earliest-deadline",)
+
+
+def budget(entry):
+    # A request budget begins at eligible release. A task budget is fixed.
+    limits = []
+    if "task_deadline_at_s" in entry:
+        limits.append((entry["task_deadline_at_s"], "task"))
+    if "released_s" in entry and "deadline_s" in entry["request"]:
+        limits.append((entry["released_s"] + entry["request"]["deadline_s"], "request"))
+    return min(limits, key=lambda limit: limit[0]) if limits else (None, None)
 
 
 def choose(ready, now, policy, aging_s):
-    if policy not in POLICIES:
+    if policy not in POLICIES + OPT_IN_POLICIES:
         raise ValueError("unknown policy")
+    if policy == "earliest-deadline":
+        def deadline_key(entry):
+            deadline, _ = budget(entry)
+            return (float("inf") if deadline is None else deadline, entry["released_s"], entry["index"])
+        return min(ready, key=deadline_key)
     # Aging promotes overdue requests into FIFO ahead of all non-overdue work.
     if policy == "aging":
         overdue = [r for r in ready if now - r["released_s"] >= aging_s]
@@ -21,7 +37,7 @@ def choose(ready, now, policy, aging_s):
 
 async def run(workload, backend, policy="fcfs", concurrency=2, aging_s=0.2):
     validate(workload)
-    if concurrency < 1 or aging_s <= 0 or policy not in POLICIES:
+    if concurrency < 1 or aging_s <= 0 or policy not in POLICIES + OPT_IN_POLICIES:
         raise ValueError("invalid scheduler configuration")
     clock = asyncio.get_running_loop().time
     start = clock()
@@ -30,15 +46,6 @@ async def run(workload, backend, policy="fcfs", concurrency=2, aging_s=0.2):
                for i, r in enumerate(workload["requests"])]
     ready, active, finished, records = [], {}, {}, []
     now = lambda: clock() - start
-
-    def budget(entry):
-        # A request budget begins at eligible release. A task budget is fixed.
-        limits = []
-        if "task_deadline_at_s" in entry:
-            limits.append((entry["task_deadline_at_s"], "task"))
-        if "released_s" in entry and "deadline_s" in entry["request"]:
-            limits.append((entry["released_s"] + entry["request"]["deadline_s"], "request"))
-        return min(limits, key=lambda limit: limit[0]) if limits else (None, None)
 
     def metadata(entry):
         result = {key: entry[key] for key in ("task_id", "task_arrival_s", "task_deadline_at_s") if key in entry}

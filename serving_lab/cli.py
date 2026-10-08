@@ -11,7 +11,7 @@ from .metrics import markdown, summarize, summarize_tasks, distribution
 from .tasks import outcomes
 from .mock_server import serve
 from .reporting import Output
-from .scheduler import POLICIES, run
+from .scheduler import POLICIES, OPT_IN_POLICIES, run
 from .workload import PROFILES, admission_profile, generate, tokenize, validate
 
 
@@ -54,7 +54,8 @@ async def experiment(args, url, evidence):
     stage = "backend_setup"
     try:
         try:
-            backend = OpenAIBackend(url, args.model, os.environ.get(args.api_key_env), args.timeout, args.logprobs)
+            backend = OpenAIBackend(url, args.model, os.environ.get(args.api_key_env), args.timeout, args.logprobs,
+                                    max_connections=args.concurrency)
             if args.tokenize:
                 stage = "tokenize"
                 await tokenize(workload, backend)
@@ -119,7 +120,7 @@ def main():
         p.add_argument("--seed", type=int, default=42)
         p.add_argument("--count", type=int, default=24)
         p.add_argument("--concurrency", type=int, default=2)
-        p.add_argument("--policy", choices=["all", *POLICIES], default="all")
+        p.add_argument("--policy", choices=["all", *POLICIES, *OPT_IN_POLICIES], default="all")
         p.add_argument("--repeats", type=int, default=1)
         p.add_argument("--aging", type=float, default=0.2)
         p.add_argument("--starvation", type=float, default=1.0)
